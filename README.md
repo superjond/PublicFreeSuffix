@@ -61,7 +61,7 @@ Update: {your-new-domain-name}.{sld}
 ```text
 Remove: {your-new-domain-name}.{sld}
 ```
-4. Use the registrant email address to send email to `sokgregistry@gmail.com` and wait for setup.
+4. Use the registrant email address to send email to `sokgregistry@gmail.com` and wait for setup, email title must same as your Pull Request, and content must as.
 ```text
 Domain Name:
 Pull Request URL:
