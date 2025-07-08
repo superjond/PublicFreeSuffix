@@ -1,6 +1,6 @@
-# SOKG Domain: Free Domain Suffix Service For Everyone
+# Public Free Suffix: Free Domain Name For Everyone
 
-**SOKG Domain** is a non-profit, free subdomain service designed to empower various communities. We believe in providing accessible resources for:
+**Public Free Suffix** is a non-profit, free subdomain service designed to empower various communities. We believe in providing accessible resources for:
 
 * **Developers:** Perfect for project testing, staging environments, and personal development sandboxes.
 * **Students:** Ideal for academic research, class projects, and learning new technologies without cost barriers.
@@ -24,7 +24,7 @@ gitceo.com
 
 1. Clone the repository:
 ```bash
-git clone https://github.com/SOKGNet/SOKGDomain.git
+git clone https://github.com/PublicFreeSuffix/PublicFreeSuffix.git
 ```
 2. Choose avaliable domain name, and create a new whois file into `./whois/{your-new-domain-name}.json` folder:
 ```json
@@ -65,7 +65,7 @@ Update: {your-new-domain-name}.{sld}
 Remove: {your-new-domain-name}.{sld}
 ```
 A single Pull Request is only allowed to submit one domain name registration request.
-4. Use the registrant email address to send email to `sokgregistry@gmail.com` and wait for setup, email title must same as your Pull Request, and content must as.
+4. Use the registrant email address to send email to `publicfreesuffix@gmail.com` and wait for setup, email title must same as your Pull Request, and content must as.
 ```text
 Domain Name:
 Pull Request URL:
@@ -74,5 +74,5 @@ Pull Request URL:
 
 ## How do I update my domain's NS / registrant email?
 1. Please modify your whois file and create a new pull request.
-2. Use the registrant email address to send email to `sokgregistry@gmail.com` with same content and wait for update.
-3. (If it's an update for registrant email request)Use the new registrant email address to send the same email `sokgregistry@gmail.com`.
+2. Use the registrant email address to send email to `publicfreesuffix@gmail.com` with same content and wait for update.
+3. (If it's an update for registrant email request)Use the new registrant email address to send the same email `publicfreesuffix@gmail.com`.

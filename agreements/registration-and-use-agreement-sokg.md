@@ -1,22 +1,22 @@
-# SOKG Domain Suffix Service Project Domain Name Registration and Use Agreement (All Domain Suffixes)
+# PUBLIC Free Suffix Service Project Domain Name Registration and Use Agreement (All Domain Suffixes)
 
 **Effective Date: January 1, 2025**
 
-**Please read carefully and agree to this SOKG Domain Suffix Service Project Domain Name Registration and Use Agreement (the "Domain Agreement"). Your registration, management, and use of any domain name suffixes obtained through the SOKG Domain Suffix Service Project are subject to all the terms of this Domain Agreement.**
+**Please read carefully and agree to this PUBLIC Free Suffix Service Project Domain Name Registration and Use Agreement (the "Domain Agreement"). Your registration, management, and use of any domain name suffixes obtained through the PUBLIC Free Suffix Service Project are subject to all the terms of this Domain Agreement.**
 
-**[ ] I have read and agree to the SOKG Domain Suffix Service Project Domain Name Registration and Use Agreement (All Domain Suffixes)** (Checkbox required before registering or using domain services from this project)
+**[ ] I have read and agree to the PUBLIC Free Suffix Service Project Domain Name Registration and Use Agreement (All Domain Suffixes)** (Checkbox required before registering or using domain services from this project)
 
 **By checking the box above and proceeding with the registration or use of domain services from this project, you acknowledge that you have read, understood, and agree to be bound by all the terms and conditions of this Domain Agreement. If you do not agree to any of the terms of this Domain Agreement, please do not proceed with the registration or use of domain services from this project.**
 
-**This Agreement is the official agreement for your use of SOKG domain suffix services.**
+**This Agreement is the official agreement for your use of PUBLIC free suffix services.**
 
 **1. About the Domain Suffixes Provided by This Service Project**
 
-1.1. This service project primarily provides domain registration services, including but not limited to the .so.kg suffix. **Please note specifically that certain domain suffixes provided by this service project (e.g., .so.kg) may be private domain suffixes managed and operated by the SOKG Domain Suffix Service Project and are not traditional ICANN-authorized top-level domains (gTLD or ccTLD).**
+1.1. This service project primarily provides domain registration services, including but not limited to the .so.kg suffix. **Please note specifically that certain domain suffixes provided by this service project (e.g., .so.kg) may be private domain suffixes managed and operated by the PUBLIC Free Suffix Service Project and are not traditional ICANN-authorized top-level domains (gTLD or ccTLD).**
 
 1.2. **Important Disclaimer:** Given that this service project may provide private domain suffixes, **you expressly understand and agree that domain names registered through this service project with such suffixes may not have the right to be transferred between different public registrars or to be renewed in the same manner as traditional TLDs.** No guarantees are made regarding their availability, suitability, or security. You fully acknowledge and understand these circumstances and voluntarily decide whether to continue using the domain registration services provided by this service project.
 
-1.3. The **primary purpose** of the SOKG Domain Suffix Service Project in providing domain suffix services (including but not limited to .so.kg) is to promote the development of the open-source community, and their use is recommended for the following purposes:
+1.3. The **primary purpose** of the PUBLIC Free Suffix Service Project in providing domain suffix services (including but not limited to .so.kg) is to promote the development of the open-source community, and their use is recommended for the following purposes:
   * Use in open-source projects to reduce maintenance costs.
   * Use by individual users to set up personal blogs.
 
@@ -29,13 +29,13 @@
 
 2.2. **Commitment to Registration Information Accuracy:** You represent and warrant that all information you provide when registering a domain name is true, accurate, complete, and valid, and that you will not provide any spam information for abusive registration purposes. You are responsible for promptly updating your registration information to ensure its accuracy. Providing false, inaccurate, or incomplete registration information may result in the failure of domain registration, suspension, deletion, or other adverse consequences, and you shall bear all responsibilities arising therefrom. 
 
-2.3. **Authorization for Whois Information Publication:** You authorize the SOKG Domain Suffix Service Project to publish your domain contact information on the SOKG Domain Suffix Service Project's Whois server and/or Github repository page for public inquiry upon successful registration of the domain name. You understand and agree that this is a common practice in domain management and network transparency.
+2.3. **Authorization for Whois Information Publication:** You authorize the PUBLIC Free Suffix Service Project to publish your domain contact information on the PUBLIC Free Suffix Service Project's Whois server and/or Github repository page for public inquiry upon successful registration of the domain name. You understand and agree that this is a common practice in domain management and network transparency.
 
 2.4. The domain registration services provided by this service project may be free of charge, as specified at the time of registration. For free domain names, their registration period, renewal policies, etc., may differ from traditional top-level domains and are subject to the rules published by this service project.
 
 2.5. **Domain Registration Rules:** You agree and understand that the second-level domain name (i.e., the custom part before .so.kg or the corresponding part for other suffixes) registered must meet the following conditions:
   * The domain name length must be greater than 3 characters.
-  * It must not conflict with the existing reserved words list in the SOKG Domain Suffix Service Project Github repository (specific path: `reserved_words.txt`).
+  * It must not conflict with the existing reserved words list in the PUBLIC Free Suffix Service Project Github repository (specific path: `reserved_words.txt`).
   * It must not use words intended to cause impersonation or confusion for other users, organizations, or the public.
 
 **3. Prohibited Uses of Domain Names**
@@ -83,4 +83,4 @@
 
 5.5. This service project reserves the right to suspend, restrict, or terminate part or all of the domain name services at any time for any reason without prior notice and without any liability.
 
-5.6. **Retention of Ownership:** You expressly understand and agree that for domain names registered under this service project, you only possess the right to use the specific second-level domain name, and **the ownership of all domain names is always retained by the SOKG Domain Suffix Service Project.** The SOKG Domain Suffix Service Project has the right to reclaim the right to use specific domain names at any time based on investigations, violation status, or other normal, reasonable, and lawful considerations.
+5.6. **Retention of Ownership:** You expressly understand and agree that for domain names registered under this service project, you only possess the right to use the specific second-level domain name, and **the ownership of all domain names is always retained by the PUBLIC Free Suffix Service Project.** The PUBLIC Free Suffix Service Project has the right to reclaim the right to use specific domain names at any time based on investigations, violation status, or other normal, reasonable, and lawful considerations.
