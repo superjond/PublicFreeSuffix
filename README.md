@@ -27,7 +27,7 @@ git clone https://github.com/PublicFreeSuffix/PublicFreeSuffix.git
 {
   "registrant": "your-own-example@gmail.com",
   "domain": "mynewdomain",
-  "sld": "so.kg",
+  "sld": "no.kg",
   "nameservers": [
     "nameserver1.example.com",
     "nameserver2.example.com",
@@ -43,6 +43,7 @@ git clone https://github.com/PublicFreeSuffix/PublicFreeSuffix.git
 ```
 - `registrant`: The email address of the domain owner.
 - `domain`: The domain name without the top-level domain (e.g., "mynewdomain"), domain length must more than 3 chars.
+- `sld`: The suffix you want to register (e.g., "no.kg" or one of SLD in list before).
 - `nameservers`: A list of DNS servers responsible for resolving the domain, 2 - 4 servers are allowed.
 - `agree_to_agreements`: A boolean value indicating whether the user has agreed to the registration and use agreement, acceptable use policy, and privacy policy.
 - The name of this file must be `{your-new-domain-name}.json`, like `mynewdomain.so.kg.json` here.
