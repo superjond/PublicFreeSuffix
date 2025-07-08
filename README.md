@@ -54,5 +54,5 @@ Pull Request URL:
 
 ## How do I update my domain's NS / registrant email?
 1. Please modify your whois file and create a new pull request.
-2. Use the registrant email address to send email to `sokgregistry@gmail.com` and wait for update with same content.
-3. (If it's an update for registrant email request)Use the new registrant email address to send the same email `sokgregistry@gmail.com` with same content.
+2. Use the registrant email address to send email to `sokgregistry@gmail.com` with same content and wait for update.
+3. (If it's an update for registrant email request)Use the new registrant email address to send the same email `sokgregistry@gmail.com`.
