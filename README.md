@@ -1,4 +1,4 @@
-# Free Shared Domain Suffix Registration
+# SOKG Domain: Free Shared Domain Suffix Service For Everyone
 
 **SOKG Domain** is a non-profit, free subdomain service designed to empower various communities. We believe in providing accessible resources for:
 
