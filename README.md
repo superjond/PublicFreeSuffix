@@ -46,7 +46,7 @@ git clone https://github.com/PublicFreeSuffix/PublicFreeSuffix.git
 - `sld`: The suffix you want to register (e.g., "no.kg" or one of SLD in list before).
 - `nameservers`: A list of DNS servers responsible for resolving the domain, 2 - 4 servers are allowed.
 - `agree_to_agreements`: A boolean value indicating whether the user has agreed to the registration and use agreement, acceptable use policy, and privacy policy.
-- The name of this file must be `{your-new-domain-name}.json`, like `mynewdomain.so.kg.json` here.
+- The name of this file must be `{your-new-domain-name}.json`, like `mynewdomain.no.kg.json` here.
 
 
 > **Notice** In order to improve utilization and prevent hoarding of registrations and waste of resources, your registered domain name will be revoked if it is detected that no website content has been deployed within 30 consecutive days.
