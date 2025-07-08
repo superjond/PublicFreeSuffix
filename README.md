@@ -9,6 +9,7 @@
 
 Anyone can register and obtain their free domain from here and renew it annually at no cost. The suffixes currently providing services are as follows (sld):
 ```text
+no.kg
 so.kg
 tun.re
 nastu.net
