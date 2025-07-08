@@ -1,0 +1,14 @@
+{
+  "registrant": "opzc35@gmail.com",
+  "domain": "sky",
+  "sld": "no.kg",
+  "nameservers": [
+    "charles.ns.cloudflare.com",
+    "simone.ns.cloudflare.com",
+  ],
+  "agree_to_agreements": {
+    "registration_and_use_agreement": true,
+    "acceptable_use_policy": true,
+    "privacy_policy": true
+  }
+}
