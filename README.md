@@ -45,9 +45,14 @@ git clone https://github.com/SOKGNet/SOKGDomain.git
 - The name of this file must be `{your-new-domain-name}.json`, like `mynewdomain.so.kg.json` here.
 
 3. Create a pull request with your new domain name and whois file.
-4. Use the registrant email address to send and email to `sokgregistry@gmail.com` and wait for setup.
+4. Use the registrant email address to send email to `sokgregistry@gmail.com` and wait for setup.
 ```text
 Domain Name:
 Pull Request URL:
 ```
 5. After the domain is set up, you can use it for your website or other purposes.
+
+## How do I update my domain's NS / registrant email?
+1. Please modify your whois file and create a new pull request.
+2. Use the registrant email address to send email to `sokgregistry@gmail.com` and wait for update with same content.
+3. (If it's an update for registrant email request)Use the new registrant email address to send the same email `sokgregistry@gmail.com` with same content.
