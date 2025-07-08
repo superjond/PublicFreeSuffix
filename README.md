@@ -1,10 +1,6 @@
-# SO.KG: Free Shared Domain Suffix Registration
+# Free Shared Domain Suffix Registration
 
----
-
-## What is SOKG Registry?
-
-**SOKG Registry** is a non-profit, free subdomain service designed to empower various communities. We believe in providing accessible resources for:
+**SOKG Domain** is a non-profit, free subdomain service designed to empower various communities. We believe in providing accessible resources for:
 
 * **Developers:** Perfect for project testing, staging environments, and personal development sandboxes.
 * **Students:** Ideal for academic research, class projects, and learning new technologies without cost barriers.
@@ -19,6 +15,11 @@ nastu.net
 gitceo.com
 ```
 ## How do I register a domain name?
+
+[Acceptable Use Policy](agreements/acceptable-use-policy.md) | 
+[Privacy Policy](agreements/privacy-policy.md) | 
+[Registration And Use Agreement](agreements/registration-and-use-agreement-sokg.md) | 
+[Reserved Words List](reserved_words.txt)
 
 1. Clone the repository:
 ```bash
@@ -44,7 +45,7 @@ git clone https://github.com/SOKGNet/SOKGDomain.git
 }
 ```
 - `registrant`: The email address of the domain owner.
-- `domain`: The domain name without the top-level domain (e.g., "mynewdomain").
+- `domain`: The domain name without the top-level domain (e.g., "mynewdomain"), domain length must more than 3 chars.
 - `nameservers`: A list of DNS servers responsible for resolving the domain, 2 - 4 servers are allowed.
 - `agree_to_agreements`: A boolean value indicating whether the user has agreed to the registration and use agreement, acceptable use policy, and privacy policy.
 - The name of this file must be `{your-new-domain-name}.json`, like `mynewdomain.so.kg.json` here.
