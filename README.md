@@ -1,4 +1,4 @@
-# SO.KG: Free Domain Registration & DDNS API
+# SO.KG: Free Shared Domain Suffix Registration
 
 ---
 
@@ -11,53 +11,43 @@
 * **Technicians:** An excellent resource for computer and network technology research, lab setups, and experimenting with new configurations.
 * **Personal Users:** Host your personal blog, portfolio, or small passion project within our compliant framework.
 
-Anyone can register and obtain their free domain from [SOKG.NET](https://sokg.net) and renew it annually at no cost.
+Anyone can register and obtain their free domain from here and renew it annually at no cost.
 
-## Why This Repository?
+## How do I register a domain name?
 
-This repository serves as the central hub for the documentation and the soon-to-be-launched **SOKG Domain & DNS API**. Our goal is to enable developers and SOKG account holders to programmatically manage their free domains, integrating this valuable service directly into their workflows.
+1. Clone the repository:
+```bash
+git clone https://github.com/SOKGNet/SOKGDomain.git
+```
+2. Choose avaliable domain name, and create a new whois file into `./whois/{your-new-domain-name}.json` folder:
+```json
+{
+  "registrant": "your-own-example@gmail.com",
+  "domain": "mynewdomain",
+  "sld": "so.kg",
+  "nameservers": [
+    "nameserver1.example.com",
+    "nameserver2.example.com",
+    "nameserver3.example.com",
+    "nameserver4.example.com"
+  ],
+  "agree_to_agreements": {
+    "registration_and_use_agreement": true,
+    "acceptable_use_policy": true,
+    "privacy_policy": true
+  }
+}
+```
+- `registrant`: The email address of the domain owner.
+- `domain`: The domain name without the top-level domain (e.g., "mynewdomain").
+- `nameservers`: A list of DNS servers responsible for resolving the domain, 2 - 4 servers are allowed.
+- `agree_to_agreements`: A boolean value indicating whether the user has agreed to the registration and use agreement, acceptable use policy, and privacy policy.
+- The name of this file must be `{your-new-domain-name}.json`, like `mynewdomain.so.kg.json` here.
 
-## Key Features & Benefits
-
-* **Completely Free:** No hidden costs, no recurring fees. Your domain is free, always.
-* **Annual Renewal:** Keep your domain active with a simple annual renewal process.
-* **Developer-Friendly API (Coming Soon):** Automate domain registration and DNS record management.
-* **Reliable Infrastructure:** We're committed to providing a stable and dependable service for your projects.
-* **Community-Oriented:** Built to support learning, innovation, and personal expression.
-
-## More Application Scenarios
-
-Beyond the core uses, imagine the possibilities with SOKG:
-
-* **Automated Testing Environments:** Provision unique subdomains for each test run or CI/CD pipeline.
-* **IoT Device Addressing:** Give your smart devices easy-to-remember and dynamic addresses.
-* **Ephemeral Development Servers:** Quickly spin up and tear down temporary development instances with dedicated URLs.
-* **Dynamic DNS for Home Labs:** Access your home server or network remotely, even with a changing IP.
-* **Educational Workshops:** Provide unique domains for every participant in coding bootcamps or workshops.
-* **Open-Source Project Showcases:** Offer live demos of your open-source projects using memorable domains.
-
-## Get Started Today!
-
-Ready to claim your free domain?
-
-1.  **Register an Account:** Head over to [https://sokg.net](https://sokg.net).
-2.  **Developer Account Association:** Link your GitHub account (registered for over 6 months) for simple OAuth authentication.
-3.  **Start Registering:** Begin registering your free domains!
-
-## Legal & Policies
-
-Transparency and user compliance are paramount to us. Please review our policies:
-
-* **Acceptable Use Policy (AUP):** [https://sokg.net/legal/acceptable-user-policy](https://sokg.net/legal/acceptable-user-policy)
-* **Privacy Policy:** [https://sokg.net/legal/privacy-policy](https://sokg.net/legal/privacy-policy)
-* **User Agreement:** [https://sokg.net/legal/user-agreement](https://sokg.net/legal/user-agreement)
-
----
-
-## Contribute & Spread the Word!
-
-We welcome contributions to our documentation and future API development. More importantly, we encourage you to **share SOKG Registry** with your friends, colleagues, and communities! The more users we have, the stronger and more valuable this free resource becomes. Help us empower more developers, students, and enthusiasts across the globe.
-
----
-
-Got questions or exciting ideas for how you're using SOKG? Feel free to open an issue or connect with us!
+3. Create a pull request with your new domain name and whois file.
+4. Use the registrant email address to send and email to `sokgregistry@gmail.com` and wait for setup.
+```text
+Domain Name:
+Pull Request URL:
+```
+5. After the domain is set up, you can use it for your website or other purposes.
