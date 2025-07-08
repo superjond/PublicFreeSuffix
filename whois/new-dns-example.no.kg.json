@@ -1,7 +1,7 @@
 {
   "registrant": "sokgregistry@gmail.com",
   "domain": "new-dns-example",
-  "sld": "so.kg",
+  "sld": "no.kg",
   "nameservers": [
     "ns61.cloudns.net",
     "ns62.cloudns.com",

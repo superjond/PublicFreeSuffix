@@ -10,10 +10,6 @@
 Anyone can register and obtain their free domain from here and no need renew it annually. The suffixes currently providing services are as follows (sld):
 ```text
 no.kg
-so.kg
-tun.re
-nastu.net
-gitceo.com
 ```
 ## How do I register a domain name?
 
