@@ -11,8 +11,13 @@
 * **Technicians:** An excellent resource for computer and network technology research, lab setups, and experimenting with new configurations.
 * **Personal Users:** Host your personal blog, portfolio, or small passion project within our compliant framework.
 
-Anyone can register and obtain their free domain from here and renew it annually at no cost.
-
+Anyone can register and obtain their free domain from here and renew it annually at no cost. The suffixes currently providing services are as follows (sld):
+```text
+so.kg
+tun.re
+nastu.net
+gitceo.com
+```
 ## How do I register a domain name?
 
 1. Clone the repository:
