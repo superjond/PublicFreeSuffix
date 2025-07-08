@@ -51,7 +51,16 @@ git clone https://github.com/SOKGNet/SOKGDomain.git
 - `agree_to_agreements`: A boolean value indicating whether the user has agreed to the registration and use agreement, acceptable use policy, and privacy policy.
 - The name of this file must be `{your-new-domain-name}.json`, like `mynewdomain.so.kg.json` here.
 
-3. Create a pull request with your new domain name and whois file.
+3. Create a pull request with your new domain name and whois file, the Title of Your Pull Request Must be one of.
+```text
+Registration: {your-new-domain-name}.{sld}
+```
+```text
+Update: {your-new-domain-name}.{sld}
+```
+```text
+Remove: {your-new-domain-name}.{sld}
+```
 4. Use the registrant email address to send email to `sokgregistry@gmail.com` and wait for setup.
 ```text
 Domain Name:
