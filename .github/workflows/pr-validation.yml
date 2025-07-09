@@ -27,13 +27,15 @@ jobs:
     - name: Setup Node.js
       uses: actions/setup-node@v4
       with:
-        node-version: '18'
-        cache: 'npm'
-        cache-dependency-path: .github/scripts/package.json
+        node-version: '20'
 
     - name: Install dependencies
       working-directory: .github/scripts
-      run: npm cli
+      run: |
+        # 确保生成 package-lock.json
+        npm install
+        # 使用 ci 进行清洁安装
+        npm ci
 
     - name: Get PR information
       id: pr-info
