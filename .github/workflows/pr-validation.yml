@@ -41,6 +41,7 @@ jobs:
       id: pr-info
       uses: actions/github-script@v7
       with:
+        github-token: ${{ secrets.GITHUB_TOKEN }}
         script: |
           try {
             const { data: pullRequest } = await github.rest.pulls.get({
@@ -85,6 +86,7 @@ jobs:
       if: always()
       uses: actions/github-script@v7
       with:
+        github-token: ${{ secrets.GITHUB_TOKEN }}
         script: |
           const fs = require('fs');
           
@@ -136,6 +138,7 @@ jobs:
       if: always()
       uses: actions/github-script@v7
       with:
+        github-token: ${{ secrets.GITHUB_TOKEN }}
         script: |
           const fs = require('fs');
           
