@@ -1,7 +1,7 @@
 {
   "registrant": "sokgregistry@gmail.com",
   "domain": "migration-test",
-  "sld": "so.kg",
+  "sld": "no.kg",
   "nameservers": [
     "ns61.cloudns.net"
   ],
@@ -11,3 +11,5 @@
     "privacy_policy": false
   }
 }
+
+
