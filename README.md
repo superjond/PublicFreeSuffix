@@ -55,8 +55,8 @@ git clone https://github.com/PublicFreeSuffix/PublicFreeSuffix.git
 ```text
 Registration/Update/Remove: {your-new-domain-name}.{sld}
 ```
-
 A single Pull Request is only allowed to submit one domain name registration request.
+
 4. Use the registrant email address to send email to `publicfreesuffix@gmail.com` and wait for setup, email title must same as your Pull Request, and content must format in [AUTHORIZATION_EMAIL_TEMPLATE](AUTHORIZATION_EMAIL_TEMPLATE.md).
 
 5. After the domain is set up, you can use it for your website or other purposes.
