@@ -33,7 +33,7 @@ jobs:
 
     - name: Install dependencies
       working-directory: .github/scripts
-      run: npm install
+      run: npm cli
 
     - name: Get PR information
       id: pr-info
