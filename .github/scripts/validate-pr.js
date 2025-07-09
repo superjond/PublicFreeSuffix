@@ -44,6 +44,16 @@ class PRValidator {
       const prData = this.getPRDataFromEnv();
       console.log(`Validating PR #${prData.number}: ${prData.title}`);
 
+      // 添加错误检查函数
+      const addError = (error) => {
+        if (error) {
+          validationResult.errors.push(error);
+          validationResult.isValid = false;
+        } else {
+          console.warn('Attempted to add null/undefined error');
+        }
+      };
+
       // 1. Validate PR title format
       const titleValidation = await this.validateTitle(prData.title);
       validationResult.details.titleValid = titleValidation.isValid;
@@ -52,15 +62,13 @@ class PRValidator {
       validationResult.details.sld = titleValidation.sld;
       
       if (!titleValidation.isValid) {
-        validationResult.errors.push(titleValidation.error);
-        validationResult.isValid = false;
+        addError(titleValidation.error);
       }
 
       // 2. Validate PR description length
       const descriptionValidation = this.validatePRDescription(prData.body);
-      if (!descriptionValidation) {
-        validationResult.errors.push('PR description cannot be empty');
-        validationResult.isValid = false;
+      if (!descriptionValidation.isValid) {
+        addError(descriptionValidation.error);
       }
 
       // 3. Validate file count
@@ -68,8 +76,7 @@ class PRValidator {
       validationResult.details.fileCountValid = fileCountValidation;
       
       if (!fileCountValidation) {
-        validationResult.errors.push('PR must contain at least one file change');
-        validationResult.isValid = false;
+        addError('PR must contain at least one file change');
       }
 
       // 4. Validate file path
@@ -79,8 +86,7 @@ class PRValidator {
         validationResult.details.fileName = prData.files[0].filename;
         
         if (!filePathValidation) {
-          validationResult.errors.push('File path is incorrect. File must be located in the whois/ directory and be a .json file.');
-          validationResult.isValid = false;
+          addError('File path is incorrect. File must be located in the whois/ directory and be a .json file.');
         }
 
         // 5. Validate JSON format (only for added and modified files)
@@ -89,8 +95,7 @@ class PRValidator {
           validationResult.details.jsonValid = jsonValidation.isValid;
           
           if (!jsonValidation.isValid) {
-            validationResult.errors.push(jsonValidation.error);
-            validationResult.isValid = false;
+            addError(jsonValidation.error);
           }
         } else if (prData.files[0].status === 'removed') {
           // For deleted files, no need to validate JSON content
@@ -105,8 +110,7 @@ class PRValidator {
           );
           
           if (!consistencyValidation.isValid) {
-            validationResult.errors.push(consistencyValidation.error);
-            validationResult.isValid = false;
+            addError(consistencyValidation.error);
           }
         }
       }
@@ -126,8 +130,10 @@ class PRValidator {
     } catch (error) {
       console.error('Error occurred during validation:', error);
       validationResult.isValid = false;
-      validationResult.errors.push(`Internal validation error: ${error.message}`);
-      validationResult.report = `## ❌ PR Validation Failed\n\nInternal error occurred during validation: ${error.message}`;
+      // 确保错误消息不为空
+      const errorMessage = error && error.message ? error.message : 'An unknown error occurred during validation';
+      addError(`Internal validation error: ${errorMessage}`);
+      validationResult.report = `## ❌ PR Validation Failed\n\nInternal error occurred during validation: ${errorMessage}`;
       this.saveValidationResult(validationResult);
       return validationResult;
     }
@@ -208,15 +214,55 @@ class PRValidator {
 
     if (!body || typeof body !== 'string') {
       result.error = 'PR description cannot be empty';
+      console.log('PR description validation failed: empty description');
       return result;
     }
 
-    // Check if description length is less than 1300 characters
-    if (body.length < config.validation.minDescriptionLength) {
-      result.error = `PR description is too short. Description should be filled according to the template, requiring at least ${config.validation.minDescriptionLength} characters. Current length: ${body.length} characters. Please use the provided PR template to complete all required confirmation items.`;
+    // 定义需要检查的关键部分
+    const requiredSections = {
+      'Operation Type': {
+        regex: /## Operation Type\s*-\s*\[[\sx]]\s*Create,\s*Register a new domain name\.\s*-\s*\[[\sx]]\s*Update,\s*Update NS information or registrant email for an existing domain\.\s*-\s*\[[\sx]]\s*Remove,\s*Cancel my domain name\./m,
+        error: 'Operation Type section is missing or incomplete. Please select one operation type.'
+      },
+      'Domain': {
+        regex: /## Domain\s*-\s*\[[\sx]]/m,
+        error: 'Domain section is missing or incomplete. Please confirm your domain name.'
+      },
+      'Confirmation Items': {
+        regex: /## Confirmation Items(\s*-\s*\[[\sx]].+){9,}/m,  // 确保至少有9个确认项
+        error: 'Confirmation Items section is missing or incomplete. All 9 confirmation items must be present.'
+      }
+    };
+
+    // 检查每个必需部分
+    const missingParts = [];
+    for (const [section, check] of Object.entries(requiredSections)) {
+      if (!check.regex.test(body)) {
+        missingParts.push(check.error);
+        console.log(`PR description validation failed: ${section} section validation failed`);
+      }
+    }
+
+    // 检查是否至少有一个 Operation Type 被选中
+    const operationTypeChecked = /## Operation Type[^[]*\[[x]]/mi.test(body);
+    if (!operationTypeChecked) {
+      missingParts.push('Please select one operation type by checking the corresponding checkbox.');
+    }
+
+    // 检查确认项是否都被选中
+    const confirmationItems = body.match(/\[[\sx]]/g) || [];
+    const checkedItems = confirmationItems.filter(item => item === '[x]').length;
+    if (checkedItems < 11) { // 1个操作类型 + 1个域名确认 + 9个确认项
+      missingParts.push(`Please check all confirmation items. Only ${checkedItems} of 11 required items are checked.`);
+      console.log(`PR description validation failed: only ${checkedItems} of 11 required checkboxes are checked`);
+    }
+
+    if (missingParts.length > 0) {
+      result.error = 'PR description validation failed:\n' + missingParts.join('\n');
       return result;
     }
 
+    console.log('PR description validation passed: all required sections and checkboxes are present');
     result.isValid = true;
     return result;
   }
@@ -706,6 +752,7 @@ class PRValidator {
       console.log(`   File: ${validationResult.details.fileName}`);
     } else {
       console.log(`❌ PR #${prNumber} validation failed`);
+      console.log('Validation errors:', JSON.stringify(validationResult.errors, null, 2));
       validationResult.errors.forEach((error, index) => {
         console.log(`   Error ${index + 1}: ${error}`);
       });
@@ -863,6 +910,12 @@ whois/mycompany.so.kg.json
     };
 
     errors.forEach(error => {
+      // 添加对 undefined 错误的检查
+      if (!error) {
+        console.warn('Encountered undefined error in categorizeErrors');
+        return;
+      }
+      
       const errorLower = error.toLowerCase();
       
       if (errorLower.includes('title format') || errorLower.includes('pr title')) {
