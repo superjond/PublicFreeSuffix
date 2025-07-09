@@ -22,6 +22,12 @@ no.kg
 ```bash
 git clone https://github.com/PublicFreeSuffix/PublicFreeSuffix.git
 ```
+Create a new branch for your own domain name:
+```bash
+git checkout main
+git pull origin main
+git checkout -b request-{example.no.kg}
+```
 2. Choose avaliable domain name, and create a new whois file into `./whois/{your-new-domain-name}.json` folder:
 ```json
 {
@@ -47,7 +53,6 @@ git clone https://github.com/PublicFreeSuffix/PublicFreeSuffix.git
 - `nameservers`: A list of DNS servers responsible for resolving the domain, 2 - 4 servers are allowed.
 - `agree_to_agreements`: A boolean value indicating whether the user has agreed to the registration and use agreement, acceptable use policy, and privacy policy.
 - The name of this file must be `{your-new-domain-name}.json`, like `mynewdomain.no.kg.json` here.
-
 
 > **Notice** In order to improve utilization and prevent hoarding of registrations and waste of resources, your registered domain name will be revoked if it is detected that no website content has been deployed within 30 consecutive days.
 
