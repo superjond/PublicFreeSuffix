@@ -42,30 +42,35 @@ jobs:
       uses: actions/github-script@v7
       with:
         script: |
-          const { data: pullRequest } = await github.rest.pulls.get({
-            owner: context.repo.owner,
-            repo: context.repo.repo,
-            pull_number: context.issue.number
-          });
-          
-          const { data: files } = await github.rest.pulls.listFiles({
-            owner: context.repo.owner,
-            repo: context.repo.repo,
-            pull_number: context.issue.number
-          });
-          
-          core.setOutput('pr-title', pullRequest.title);
-          core.setOutput('pr-body', pullRequest.body || '');
-          core.setOutput('pr-number', context.issue.number);
-          core.setOutput('pr-author', pullRequest.user.login);
-          core.setOutput('files', JSON.stringify(files));
-          core.setOutput('head-sha', pullRequest.head.sha);
+          try {
+            const { data: pullRequest } = await github.rest.pulls.get({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              pull_number: context.issue.number
+            });
+            
+            const { data: files } = await github.rest.pulls.listFiles({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              pull_number: context.issue.number
+            });
+            
+            core.setOutput('pr-title', pullRequest.title);
+            core.setOutput('pr-body', pullRequest.body || '');
+            core.setOutput('pr-number', context.issue.number);
+            core.setOutput('pr-author', pullRequest.user.login);
+            core.setOutput('files', JSON.stringify(files));
+            core.setOutput('head-sha', pullRequest.head.sha);
+            core.setOutput('pr-state', pullRequest.state);
+            
+          } catch (error) {
+            core.setFailed(`Failed to get PR information: ${error.message}`);
+          }
 
     - name: Validate Pull Request
-      id: validate
-      run: |
-        cd .github/scripts
-        node validate-pr.js
+      if: steps.pr-info.outputs.pr-title
+      working-directory: .github/scripts
+      run: node validate-pr.js
       env:
         PR_TITLE: ${{ steps.pr-info.outputs.pr-title }}
         PR_BODY: ${{ steps.pr-info.outputs.pr-body }}
