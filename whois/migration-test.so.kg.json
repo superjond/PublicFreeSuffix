@@ -3,7 +3,7 @@
   "domain": "migration-test",
   "sld": "so.kg",
   "nameservers": [
-    "ns61.cloudns.net",
+    "ns61.cloudns.net"
   ],
   "agree_to_agreements": {
     "registration_and_use_agreement": true,
