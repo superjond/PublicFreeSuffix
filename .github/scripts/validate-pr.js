@@ -95,21 +95,27 @@ class PRValidator {
           addError('File path is incorrect. File must be located in the whois/ directory and be a .json file.');
         }
 
-        // 5. Validate JSON format (only for added and modified files)
-        if (filePathValidation && ['added', 'modified'].includes(prData.files[0].status)) {
-          const jsonValidation = await this.validateJsonContent(prData.files[0], prData);
-          validationResult.details.jsonValid = jsonValidation.isValid;
-          
-          if (!jsonValidation.isValid) {
-            addError(jsonValidation.error);
-          }
-        } else if (prData.files[0].status === 'removed') {
-          // For deleted files, no need to validate JSON content
-          validationResult.details.jsonValid = true;
-        }
-
-        // 6. Validate title and filename consistency
+        // 5. 根据操作类型进行不同的验证
         if (titleValidation.isValid && filePathValidation) {
+          if (titleValidation.actionType === 'Remove') {
+            // 对Remove操作进行特殊验证
+            const removeValidation = await this.validateRemoveOperation(prData.files[0], titleValidation);
+            validationResult.details.jsonValid = removeValidation.isValid;
+            if (!removeValidation.isValid) {
+              addError(removeValidation.error);
+            }
+          } else {
+            // 对于其他操作类型（Registration/Update）进行常规JSON验证
+            if (['added', 'modified'].includes(prData.files[0].status)) {
+              const jsonValidation = await this.validateJsonContent(prData.files[0], prData);
+              validationResult.details.jsonValid = jsonValidation.isValid;
+              if (!jsonValidation.isValid) {
+                addError(jsonValidation.error);
+              }
+            }
+          }
+
+          // 验证标题和文件名一致性
           const consistencyValidation = this.validateTitleFileConsistency(
             titleValidation, 
             prData.files[0].filename
@@ -821,6 +827,22 @@ whois/mycompany.so.kg.json
       });
     }
 
+    if (errorTypes.removeOperation) {
+      helpSections.push({
+        title: "Fix Remove Operation Issues",
+        content: `For Remove operations:
+1. The file must exist in the repository
+2. The file must be marked for deletion
+3. The file name must match the domain in the PR title
+4. You must have proper permissions to remove the domain
+
+Please ensure:
+- You are removing the correct file
+- The file exists in the main branch
+- You have the necessary permissions`
+      });
+    }
+
     // Add more error type help information...
     // You can continue adding help for other error types here
 
@@ -843,7 +865,8 @@ whois/mycompany.so.kg.json
       sld: false,
       nameservers: false,
       agreements: false,
-      consistency: false
+      consistency: false,
+      removeOperation: false  // 添加新的错误类型
     };
 
     errors.forEach(error => {
@@ -890,6 +913,12 @@ whois/mycompany.so.kg.json
       }
       if (errorLower.includes('not match') || errorLower.includes('consistency')) {
         categories.consistency = true;
+      }
+      // 添加Remove操作相关的错误检查
+      if (errorLower.includes('remove operation') || 
+          errorLower.includes('cannot remove file') ||
+          (errorLower.includes('file') && errorLower.includes('removed'))) {
+        categories.removeOperation = true;
       }
     });
 
@@ -985,6 +1014,61 @@ whois/mycompany.so.kg.json
     }
 
     return true;
+  }
+
+  /**
+   * Validate Remove Operation
+   */
+  async validateRemoveOperation(file, titleValidation) {
+    const result = { isValid: false, error: null };
+    
+    try {
+      // 1. 验证文件状态是否为 removed
+      logger.debug(`Validating remove operation for file: ${file.filename}`);
+      logger.debug(`File status: ${file.status}`);
+      
+      if (file.status !== 'removed') {
+        result.error = `For Remove operation, file status must be 'removed', but got '${file.status}'`;
+        logger.error(result.error);
+        return result;
+      }
+      
+      // 2. 验证文件是否存在于主分支
+      const [owner, repo] = config.github.repository.split('/');
+      logger.debug(`Checking if file exists in main branch: ${owner}/${repo}`);
+      
+      const fileExists = await githubService.checkFileExists(
+        file.filename,
+        'main',
+        owner,
+        repo
+      );
+      
+      if (!fileExists) {
+        result.error = `Cannot remove file '${file.filename}' as it does not exist in the repository`;
+        logger.error(result.error);
+        return result;
+      }
+      
+      // 3. 验证文件名与标题中的域名是否匹配
+      const expectedFilename = `whois/${titleValidation.domainName}.${titleValidation.sld}.json`;
+      logger.debug(`Comparing filenames - Expected: ${expectedFilename}, Actual: ${file.filename}`);
+      
+      if (file.filename !== expectedFilename) {
+        result.error = `File name '${file.filename}' does not match domain in title '${titleValidation.domainName}.${titleValidation.sld}'`;
+        logger.error(result.error);
+        return result;
+      }
+      
+      logger.info(`Remove operation validation passed for ${file.filename}`);
+      result.isValid = true;
+      return result;
+      
+    } catch (error) {
+      result.error = `Error validating remove operation: ${error.message}`;
+      logger.error(result.error);
+      return result;
+    }
   }
 
   /**
