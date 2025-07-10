@@ -231,6 +231,43 @@ jobs:
             });
           }
 
+    - name: Update check status
+      if: always() && steps.pr-info.outputs.pr-title != ''
+      uses: actions/github-script@v7
+      with:
+        github-token: ${{ secrets.MY_GITHUB_TOKEN }}
+        script: |
+          const fs = require('fs');
+          let conclusion = 'failure';
+          let summary = 'Validation failed';
+          
+          try {
+            const resultData = fs.readFileSync('pr/.github/scripts/validation-result.json', 'utf8');
+            const validationResult = JSON.parse(resultData);
+            
+            if (validationResult.isValid) {
+              conclusion = 'success';
+              summary = 'All validation checks passed';
+            } else {
+              summary = 'Validation failed: ' + validationResult.errors.join(', ');
+            }
+          } catch (error) {
+            summary = 'Failed to read validation results: ' + error.message;
+          }
+          
+          await github.rest.checks.create({
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            name: 'validate-pr',
+            head_sha: '${{ steps.pr-info.outputs.head-sha }}',
+            status: 'completed',
+            conclusion: conclusion,
+            output: {
+              title: 'PR Validation',
+              summary: summary
+            }
+          });
+
     - name: Check validation result
       if: always() && steps.pr-info.outputs.pr-title != ''
       run: |
