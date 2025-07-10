@@ -167,7 +167,7 @@ jobs:
           
           let validationResult;
           try {
-            const resultData = fs.readFileSync('.github/scripts/validation-result.json', 'utf8');
+            const resultData = fs.readFileSync('pr/.github/scripts/validation-result.json', 'utf8');
             validationResult = JSON.parse(resultData);
           } catch (error) {
             validationResult = {
@@ -225,7 +225,7 @@ jobs:
           
           let validationResult;
           try {
-            const resultData = fs.readFileSync('.github/scripts/validation-result.json', 'utf8');
+            const resultData = fs.readFileSync('pr/.github/scripts/validation-result.json', 'utf8');
             validationResult = JSON.parse(resultData);
           } catch (error) {
             validationResult = { isValid: false };
@@ -247,8 +247,8 @@ jobs:
     - name: Fail if validation failed
       if: always() && steps.pr-info.outputs.pr-title != ''
       run: |
-        if [ -f .github/scripts/validation-result.json ]; then
-          VALIDATION_RESULT=$(cat .github/scripts/validation-result.json)
+        if [ -f pr/.github/scripts/validation-result.json ]; then
+          VALIDATION_RESULT=$(cat pr/.github/scripts/validation-result.json)
           IS_VALID=$(echo "$VALIDATION_RESULT" | jq -r '.isValid')
           if [ "$IS_VALID" != "true" ]; then
             echo "PR validation failed"
