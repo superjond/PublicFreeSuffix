@@ -28,13 +28,29 @@ jobs:
     name: Validate Pull Request
     
     steps:
-    - name: Checkout code
+    - name: Checkout base repository
       uses: actions/checkout@v4
       with:
+        path: base
         fetch-depth: 0
-        ref: ${{ github.event.pull_request.head.sha }}  # 确保检出正确的PR分支
+        ref: main
         token: ${{ secrets.MY_GITHUB_TOKEN }}
-        repository: ${{ github.event.pull_request.head.repo.full_name }}  # 确保可以检出fork的PR
+
+    - name: Checkout PR
+      if: github.event_name == 'pull_request_target'
+      uses: actions/checkout@v4
+      with:
+        path: pr
+        fetch-depth: 0
+        ref: ${{ github.event.pull_request.head.sha }}
+        token: ${{ secrets.MY_GITHUB_TOKEN }}
+        repository: ${{ github.event.pull_request.head.repo.full_name }}
+
+    - name: Copy validation scripts
+      run: |
+        mkdir -p pr/.github/scripts
+        cp -r base/.github/scripts/* pr/.github/scripts/
+        rm -rf base
 
     - name: Setup Node.js
       uses: actions/setup-node@v4
@@ -42,7 +58,7 @@ jobs:
         node-version: '20'
 
     - name: Install dependencies
-      working-directory: .github/scripts
+      working-directory: pr/.github/scripts
       run: |
         # 确保生成 package-lock.json
         if [ ! -f "package-lock.json" ]; then
@@ -129,7 +145,7 @@ jobs:
 
     - name: Validate Pull Request
       if: steps.pr-info.outputs.pr-title != ''
-      working-directory: .github/scripts
+      working-directory: pr/.github/scripts
       run: node validate-pr.js
       env:
         PR_TITLE: ${{ steps.pr-info.outputs.pr-title }}
