@@ -105,17 +105,30 @@ jobs:
     - name: Read whois file content
       id: read-whois
       run: |
+        echo "Current working directory: $(pwd)"
+        echo "Listing pr-files directory:"
+        ls -la pr-files/ || echo "pr-files directory not found"
+        
         FILES=$(echo '${{ steps.pr-info.outputs.files }}' | jq -r '.[] | select(.filename | startswith("whois/")) | .filename')
+        echo "Found whois files: $FILES"
+        
         for file in $FILES; do
           if [ -f "pr-files/$file" ]; then
             echo "Reading $file from PR branch"
             cat "pr-files/$file"
             # Copy to main workspace for script access
             cp "pr-files/$file" "$file"
+            echo "Copied $file to main workspace"
+            ls -la "$file"
           else
             echo "File $file not found in PR branch"
+            echo "Available files in pr-files:"
+            find pr-files/ -name "*.json" -type f 2>/dev/null || echo "No JSON files found"
           fi
         done
+        
+        echo "Final workspace structure:"
+        ls -la whois/ || echo "whois directory not found"
 
     # Execute DNS sync script (using main branch scripts)
     - name: Execute DNS Sync

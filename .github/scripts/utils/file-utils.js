@@ -13,6 +13,43 @@ class FileUtils {
       const fullPath = path.join(workspaceRoot, filePath);
       
       logger.info(`Reading whois file: ${fullPath}`);
+      logger.info(`Current working directory: ${process.cwd()}`);
+      logger.info(`Workspace root: ${workspaceRoot}`);
+      
+      // Check if file exists before reading
+      try {
+        await fs.access(fullPath);
+        logger.info(`File exists at: ${fullPath}`);
+      } catch (accessError) {
+        logger.error(`File does not exist at: ${fullPath}`);
+        // Try alternative paths
+        const altPath1 = path.resolve(process.cwd(), '../../', filePath);
+        const altPath2 = path.resolve(process.cwd(), filePath);
+        logger.info(`Trying alternative path 1: ${altPath1}`);
+        logger.info(`Trying alternative path 2: ${altPath2}`);
+        
+        // Check if file exists at alternative paths
+        try {
+          await fs.access(altPath1);
+          logger.info(`File found at alternative path 1: ${altPath1}`);
+          const content = await fs.readFile(altPath1, 'utf8');
+          const whoisData = JSON.parse(content);
+          logger.info(`Successfully parsed whois file: ${altPath1}`);
+          return whoisData;
+        } catch (alt1Error) {
+          try {
+            await fs.access(altPath2);
+            logger.info(`File found at alternative path 2: ${altPath2}`);
+            const content = await fs.readFile(altPath2, 'utf8');
+            const whoisData = JSON.parse(content);
+            logger.info(`Successfully parsed whois file: ${altPath2}`);
+            return whoisData;
+          } catch (alt2Error) {
+            throw new Error(`Whois file not found at any path: ${filePath}`);
+          }
+        }
+      }
+      
       const content = await fs.readFile(fullPath, 'utf8');
       const whoisData = JSON.parse(content);
       

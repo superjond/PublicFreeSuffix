@@ -30,8 +30,9 @@ class DNSSyncHandler {
       
       // Parse PR file changes
       const files = JSON.parse(prFiles);
-      const whoisFile = FileUtils.extractWhoisFiles(files);
+      logger.info(`Parsed PR files: ${JSON.stringify(files, null, 2)}`);
       
+      const whoisFile = FileUtils.extractWhoisFiles(files);
       logger.info(`Found whois file: ${whoisFile.filename} (status: ${whoisFile.status})`);
       
       // Handle different file statuses
