@@ -139,7 +139,7 @@ class PRValidator {
       // 确保错误消息不为空
       const errorMessage = error && error.message ? error.message : 'An unknown error occurred during validation';
       addError(`Internal validation error: ${errorMessage}`);
-      validationResult.report = `## ❌ PR Validation Failed\n\nInternal error occurred during validation: ${errorMessage}`;
+      validationResult.report = `❌ PR Validation Failed\n\nInternal error occurred during validation: ${errorMessage}`;
       this.saveValidationResult(validationResult);
       return validationResult;
     }
@@ -481,18 +481,11 @@ class PRValidator {
     const result = { isValid: false, error: null };
 
     try {
-      // Get the latest reserved words list from service
+      // 获取保留字列表
       const reservedWords = await reservedWordsService.getReservedWords();
-
-      if (!reservedWords || !Array.isArray(reservedWords)) {
-        console.warn('Unable to get reserved words list, skipping reserved words check');
-        result.isValid = true;
-        return result;
-      }
-
-      // Check if domain conflicts with reserved words
       const domainLower = domain.toLowerCase();
       
+      // 检查是否与保留字冲突
       for (const reservedWord of reservedWords) {
         if (domainLower === reservedWord.toLowerCase()) {
           result.error = `Domain "${domain}" conflicts with reserved word "${reservedWord}" and cannot be used. Reserved words are used to protect system functions and avoid confusion.`;
@@ -504,20 +497,9 @@ class PRValidator {
       return result;
 
     } catch (error) {
-      console.error('Error occurred while checking reserved words:', error);
-      
-      // Use fallback reserved words to ensure safety when error occurs
-      const fallbackWords = reservedWordsService.getFallbackWords();
-      const domainLower = domain.toLowerCase();
-      
-      for (const reservedWord of fallbackWords) {
-        if (domainLower === reservedWord.toLowerCase()) {
-          result.error = `Domain "${domain}" conflicts with reserved word "${reservedWord}" and cannot be used. Reserved words are used to protect system functions and avoid confusion.`;
-          return result;
-        }
-      }
-
-      result.isValid = true;
+      // 如果无法读取保留字列表，则拒绝验证
+      logger.error('Error occurred while checking reserved words:', error);
+      result.error = error.message;
       return result;
     }
   }
@@ -701,7 +683,7 @@ class PRValidator {
    * Generate success report
    */
   generateSuccessReport(validationResult, mentionUser) {
-    return `## ✅ PR Validation Passed
+    return `✅ PR Validation Passed
 
 ${mentionUser ? `@${mentionUser} ` : ''}**Validation Results:**
 - ✅ Title format is correct
@@ -723,7 +705,7 @@ This PR meets all requirements and can proceed with review.`;
    * Generate failure report
    */
   generateFailureReport(validationResult, mentionUser) {
-    let report = `## ❌ PR Validation Failed
+    let report = `❌ PR Validation Failed
 
 ${mentionUser ? `@${mentionUser} ` : ''}**The following issues were found:**
 `;

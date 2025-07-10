@@ -32,38 +32,13 @@ module.exports = {
       live: 'live'  // 可用状态的值
     }
   },
-  reservedWords: {
-    localPath: '../../reserved_words.txt',
-    cacheTimeout: 24 * 60 * 60 * 1000, // 24 hours
-    // 保留字列表（当文件读取失败时使用）
-    fallbackWords: [
-      'api', 'admin', 'administrator', 'root', 'master', 'www', 'ftp', 'mail', 'email',
-      'support', 'help', 'blog', 'news', 'about', 'contact', 'legal', 'privacy',
-      'terms', 'login', 'signin', 'signup', 'register', 'logout', 'auth', 'security',
-      'http', 'https', 'ssl', 'tls', 'ssh', 'smtp', 'pop', 'imap', 'dns', 'cdn',
-      'backup', 'cache', 'config', 'database', 'db', 'server', 'host', 'localhost',
-      'static', 'assets', 'uploads', 'download', 'files', 'images', 'css', 'js',
-      'shop', 'store', 'cart', 'checkout', 'payment', 'billing', 'sales', 'order',
-      'business', 'enterprise', 'corp', 'company', 'official', 'service', 'status',
-      'facebook', 'twitter', 'instagram', 'linkedin', 'youtube', 'google', 'apple',
-      'microsoft', 'amazon', 'github', 'gitlab', 'discord', 'slack', 'teams',
-      'home', 'index', 'main', 'default', 'public', 'private', 'user', 'users',
-      'profile', 'account', 'dashboard', 'settings', 'preferences', 'test', 'demo',
-      'beta', 'alpha', 'dev', 'development', 'staging', 'production', 'live'
-    ]
-  },
   logging: {
-    levels: {
-      error: 0,
-      warn: 1,
-      info: 2,
-      debug: 3
-    },
+    level: process.env.LOG_LEVEL || 'info',
     colors: {
-      error: '\x1b[31m', // red
-      warn: '\x1b[33m',  // yellow
-      info: '\x1b[36m',  // cyan
-      debug: '\x1b[90m'  // gray
+      error: 'red',
+      warn: 'yellow',
+      info: 'green',
+      debug: 'blue'
     }
   }
 }; 
