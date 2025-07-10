@@ -4,8 +4,7 @@
   "sld": "no.kg",
   "nameservers": [
     "ns62.cloudns.com",
-    "dns.cloudfalre.cn",
-    "dns.cloudfalre.com"
+    "dns.cloudfalre.cn"
   ],
   "agree_to_agreements": {
     "registration_and_use_agreement": true,
