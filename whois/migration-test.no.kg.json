@@ -8,7 +8,7 @@
     "privacy_policy": true
   },
   "nameservers": [
-    "ns62.cloudns.co",
-    "ns61.cloudns.net"
+    "ns61.cloudns.net",
+    "ns62.cloudns.co"
   ]
 }
