@@ -1,10 +1,37 @@
-name: DNS Sync on PR Merge
+name: DNS Sync
 
 on:
+  # PR merge trigger
   pull_request_target:
     types: [closed]
     paths:
       - 'whois/*.json'
+  
+  # Manual trigger
+  workflow_dispatch:
+    inputs:
+      domain:
+        description: 'Domain name (e.g., example.no.kg)'
+        required: false
+        type: string
+      operation:
+        description: 'Operation type'
+        required: false
+        type: choice
+        options:
+          - 'add'
+          - 'update'
+          - 'delete'
+          - 'auto'
+      whois_file:
+        description: 'WHOIS file path (relative to whois directory)'
+        required: false
+        type: string
+      force_sync:
+        description: 'Force sync (ignore errors)'
+        required: false
+        type: boolean
+        default: false
 
 # Global permissions
 permissions: write-all
@@ -14,11 +41,13 @@ jobs:
     runs-on: ubuntu-latest
     name: DNS Synchronization
     
-    # Only execute when PR is merged
-    if: github.event.pull_request.merged == true
+    # Execute condition: PR merge or manual trigger
+    if: |
+      (github.event_name == 'pull_request_target' && github.event.pull_request.merged == true) ||
+      github.event_name == 'workflow_dispatch'
     
     steps:
-    - name: Checkout main branch (for scripts and dependencies)
+    - name: Checkout repository
       uses: actions/checkout@v4
       with:
         fetch-depth: 0
@@ -39,8 +68,32 @@ jobs:
         # Use ci for clean installation
         npm ci
 
+    # Determine trigger type and parameters
+    - name: Determine trigger type and parameters
+      id: trigger-info
+      run: |
+        if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+          echo "trigger_type=manual" >> $GITHUB_OUTPUT
+          echo "domain=${{ github.event.inputs.domain }}" >> $GITHUB_OUTPUT
+          echo "operation=${{ github.event.inputs.operation }}" >> $GITHUB_OUTPUT
+          echo "whois_file=${{ github.event.inputs.whois_file }}" >> $GITHUB_OUTPUT
+          echo "force_sync=${{ github.event.inputs.force_sync }}" >> $GITHUB_OUTPUT
+          echo "triggered_by=${{ github.actor }}" >> $GITHUB_OUTPUT
+          echo "trigger_time=$(date -u +'%Y-%m-%dT%H:%M:%SZ')" >> $GITHUB_OUTPUT
+        else
+          echo "trigger_type=pr_merge" >> $GITHUB_OUTPUT
+          echo "domain=" >> $GITHUB_OUTPUT
+          echo "operation=" >> $GITHUB_OUTPUT
+          echo "whois_file=" >> $GITHUB_OUTPUT
+          echo "force_sync=false" >> $GITHUB_OUTPUT
+          echo "triggered_by=${{ github.event.pull_request.user.login }}" >> $GITHUB_OUTPUT
+          echo "trigger_time=$(date -u +'%Y-%m-%dT%H:%M:%SZ')" >> $GITHUB_OUTPUT
+        fi
+
+    # Get PR information (only for PR trigger)
     - name: Get PR information
       id: pr-info
+      if: steps.trigger-info.outputs.trigger_type == 'pr_merge'
       uses: actions/github-script@v7
       with:
         github-token: ${{ secrets.MY_GITHUB_TOKEN }}
@@ -83,67 +136,176 @@ jobs:
             core.setOutput('merge-sha', '');
           }
 
-    - name: Debug PR Info
+    # Debug information
+    - name: Debug trigger information
       if: always()
       run: |
-        echo "PR Title: ${{ steps.pr-info.outputs.pr-title }}"
-        echo "PR Number: ${{ steps.pr-info.outputs.pr-number }}"
-        echo "PR Author: ${{ steps.pr-info.outputs.pr-author }}"
-        echo "PR Files: ${{ steps.pr-info.outputs.files }}"
-        echo "Merge SHA: ${{ steps.pr-info.outputs.merge-sha }}"
+        echo "=== Trigger Information ==="
+        echo "Trigger Type: ${{ steps.trigger-info.outputs.trigger_type }}"
+        echo "Triggered By: ${{ steps.trigger-info.outputs.triggered_by }}"
+        echo "Trigger Time: ${{ steps.trigger-info.outputs.trigger_time }}"
+        echo "Domain: ${{ steps.trigger-info.outputs.domain }}"
+        echo "Operation: ${{ steps.trigger-info.outputs.operation }}"
+        echo "WHOIS File: ${{ steps.trigger-info.outputs.whois_file }}"
+        echo "Force Sync: ${{ steps.trigger-info.outputs.force_sync }}"
+        
+        if [ "${{ steps.trigger-info.outputs.trigger_type }}" = "pr_merge" ]; then
+          echo "=== PR Information ==="
+          echo "PR Title: ${{ steps.pr-info.outputs.pr-title }}"
+          echo "PR Number: ${{ steps.pr-info.outputs.pr-number }}"
+          echo "PR Author: ${{ steps.pr-info.outputs.pr-author }}"
+          echo "PR Files: ${{ steps.pr-info.outputs.files }}"
+          echo "Merge SHA: ${{ steps.pr-info.outputs.merge-sha }}"
+        fi
 
-    # Checkout PR head to a separate directory for whois files
-    - name: Checkout PR head (for whois files only)
-      uses: actions/checkout@v4
-      with:
-        ref: ${{ steps.pr-info.outputs.head-sha }}
-        path: pr-files
-        fetch-depth: 0
-        token: ${{ secrets.MY_GITHUB_TOKEN }}
-
-    # Read whois file content from PR branch
-    - name: Read whois file content
-      id: read-whois
+    # Handle WHOIS files for PR trigger
+    - name: Handle WHOIS files for PR trigger
+      id: handle-whois-pr
+      if: steps.trigger-info.outputs.trigger_type == 'pr_merge'
       run: |
+        # Checkout PR head to a separate directory for whois files
+        git fetch origin ${{ steps.pr-info.outputs.head-sha }}:pr-head
+        git checkout pr-head
+        
         echo "Current working directory: $(pwd)"
-        echo "Listing pr-files directory:"
-        ls -la pr-files/ || echo "pr-files directory not found"
+        echo "Listing whois directory:"
+        ls -la whois/ || echo "whois directory not found"
         
         FILES=$(echo '${{ steps.pr-info.outputs.files }}' | jq -r '.[] | select(.filename | startswith("whois/")) | .filename')
         echo "Found whois files: $FILES"
         
         for file in $FILES; do
-          if [ -f "pr-files/$file" ]; then
+          if [ -f "$file" ]; then
             echo "Reading $file from PR branch"
-            cat "pr-files/$file"
+            cat "$file"
             # Copy to main workspace for script access
-            cp "pr-files/$file" "$file"
+            cp "$file" "../$file"
             echo "Copied $file to main workspace"
-            ls -la "$file"
+            ls -la "../$file"
           else
             echo "File $file not found in PR branch"
-            echo "Available files in pr-files:"
-            find pr-files/ -name "*.json" -type f 2>/dev/null || echo "No JSON files found"
+            echo "Available files in whois:"
+            find whois/ -name "*.json" -type f 2>/dev/null || echo "No JSON files found"
           fi
         done
         
+        # Return to main workspace
+        cd ..
         echo "Final workspace structure:"
         ls -la whois/ || echo "whois directory not found"
 
-    # Execute DNS sync script (using main branch scripts)
+    # Handle WHOIS files for manual trigger
+    - name: Handle WHOIS files for manual trigger
+      id: handle-whois-manual
+      if: steps.trigger-info.outputs.trigger_type == 'manual'
+      run: |
+        echo "=== Manual Trigger WHOIS File Handling ==="
+        
+        # If specific file is specified
+        if [ -n "${{ steps.trigger-info.outputs.whois_file }}" ]; then
+          WHOIS_FILE="whois/${{ steps.trigger-info.outputs.whois_file }}"
+          if [ -f "$WHOIS_FILE" ]; then
+            echo "Using specified WHOIS file: $WHOIS_FILE"
+            cat "$WHOIS_FILE"
+          else
+            echo "❌ Specified WHOIS file not found: $WHOIS_FILE"
+            if [ "${{ steps.trigger-info.outputs.force_sync }}" = "false" ]; then
+              exit 1
+            fi
+          fi
+        else
+          # List all WHOIS files for selection
+          echo "Available WHOIS files:"
+          find whois/ -name "*.json" -type f 2>/dev/null | head -10 || echo "No JSON files found"
+          
+          # If domain is specified, try to find corresponding file
+          if [ -n "${{ steps.trigger-info.outputs.domain }}" ]; then
+            DOMAIN="${{ steps.trigger-info.outputs.domain }}"
+            DOMAIN_FILE="whois/${DOMAIN}.json"
+            if [ -f "$DOMAIN_FILE" ]; then
+              echo "Found WHOIS file for domain $DOMAIN: $DOMAIN_FILE"
+              cat "$DOMAIN_FILE"
+            else
+              echo "⚠️  No WHOIS file found for domain: $DOMAIN"
+              echo "Available files:"
+              ls -la whois/*.json 2>/dev/null || echo "No JSON files found"
+            fi
+          fi
+        fi
+
+    # Execute DNS sync script
     - name: Execute DNS Sync
       id: dns-sync
-      if: steps.pr-info.outputs.pr-title != ''
       working-directory: .github/scripts
-      run: node dns-sync.js
-      env:
-        PR_TITLE: ${{ steps.pr-info.outputs.pr-title }}
-        PR_FILES: ${{ steps.pr-info.outputs.files }}
-        PDA_API_URL: ${{ secrets.PDA_API_URL }}
-        PDA_API_KEY: ${{ secrets.PDA_API_KEY }}
+      run: |
+        # Set environment variables
+        export PDA_API_URL="${{ secrets.PDA_API_URL }}"
+        export PDA_API_KEY="${{ secrets.PDA_API_KEY }}"
+        
+        # Set different parameters based on trigger type
+        if [ "${{ steps.trigger-info.outputs.trigger_type }}" = "manual" ]; then
+          export PR_TITLE="Manual DNS Sync - ${{ steps.trigger-info.outputs.triggered_by }}"
+          export PR_FILES="[]"
+          export MANUAL_DOMAIN="${{ steps.trigger-info.outputs.domain }}"
+          export MANUAL_OPERATION="${{ steps.trigger-info.outputs.operation }}"
+          export MANUAL_WHOIS_FILE="${{ steps.trigger-info.outputs.whois_file }}"
+          export FORCE_SYNC="${{ steps.trigger-info.outputs.force_sync }}"
+          
+          echo "=== Manual Trigger Parameters ==="
+          echo "Domain: $MANUAL_DOMAIN"
+          echo "Operation: $MANUAL_OPERATION"
+          echo "WHOIS File: $MANUAL_WHOIS_FILE"
+          echo "Force Sync: $FORCE_SYNC"
+        else
+          export PR_TITLE="${{ steps.pr-info.outputs.pr-title }}"
+          export PR_FILES="${{ steps.pr-info.outputs.files }}"
+          export MANUAL_DOMAIN=""
+          export MANUAL_OPERATION=""
+          export MANUAL_WHOIS_FILE=""
+          export FORCE_SYNC="false"
+        fi
+        
+        # Execute DNS sync script
+        node dns-sync.js
 
+    # Create run summary
+    - name: Create run summary
+      id: run-summary
+      if: always()
+      run: |
+        echo "=== DNS Sync Run Summary ===" > summary.md
+        echo "" >> summary.md
+        echo "**Trigger Type:** ${{ steps.trigger-info.outputs.trigger_type }}" >> summary.md
+        echo "**Triggered By:** ${{ steps.trigger-info.outputs.triggered_by }}" >> summary.md
+        echo "**Trigger Time:** ${{ steps.trigger-info.outputs.trigger_time }}" >> summary.md
+        echo "" >> summary.md
+        
+        if [ "${{ steps.trigger-info.outputs.trigger_type }}" = "manual" ]; then
+          echo "**Manual Parameters:**" >> summary.md
+          echo "- Domain: ${{ steps.trigger-info.outputs.domain }}" >> summary.md
+          echo "- Operation: ${{ steps.trigger-info.outputs.operation }}" >> summary.md
+          echo "- WHOIS File: ${{ steps.trigger-info.outputs.whois_file }}" >> summary.md
+          echo "- Force Sync: ${{ steps.trigger-info.outputs.force_sync }}" >> summary.md
+        else
+          echo "**PR Information:**" >> summary.md
+          echo "- PR Title: ${{ steps.pr-info.outputs.pr-title }}" >> summary.md
+          echo "- PR Number: ${{ steps.pr-info.outputs.pr-number }}" >> summary.md
+          echo "- PR Author: ${{ steps.pr-info.outputs.pr-author }}" >> summary.md
+        fi
+        
+        echo "" >> summary.md
+        
+        # Read DNS sync result
+        if [ -f ".github/scripts/dns-sync-result.json" ]; then
+          echo "**DNS Sync Result:**" >> summary.md
+          cat .github/scripts/dns-sync-result.json | jq -r '. | to_entries | .[] | "- " + .key + ": " + (.value | tostring)' >> summary.md
+        else
+          echo "**DNS Sync Result:** No result file found" >> summary.md
+        fi
+
+    # Comment on PR (only for PR trigger)
     - name: Comment on PR
-      if: always() && steps.pr-info.outputs.pr-title != ''
+      if: always() && steps.trigger-info.outputs.trigger_type == 'pr_merge' && steps.pr-info.outputs.pr-title != ''
       uses: actions/github-script@v7
       with:
         github-token: ${{ secrets.MY_GITHUB_TOKEN }}
@@ -217,8 +379,9 @@ jobs:
             body: commentBody
           });
 
+    # Create commit status (only for PR trigger)
     - name: Create commit status
-      if: always() && steps.pr-info.outputs.merge-sha != ''
+      if: always() && steps.trigger-info.outputs.trigger_type == 'pr_merge' && steps.pr-info.outputs.merge-sha != ''
       uses: actions/github-script@v7
       with:
         github-token: ${{ secrets.MY_GITHUB_TOKEN }}
@@ -251,4 +414,13 @@ jobs:
             state: state,
             description: description.substring(0, 140),
             context: 'DNS Sync'
-          }); 
+          });
+
+    # Upload run summary as artifact
+    - name: Upload run summary
+      if: always()
+      uses: actions/upload-artifact@v4
+      with:
+        name: dns-sync-summary-${{ github.run_id }}
+        path: summary.md
+        retention-days: 30 

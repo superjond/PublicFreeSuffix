@@ -26,13 +26,16 @@ class PDAApiService {
 
   /**
    * Get DNS records for specified zone
+   * According to PDA API documentation, get records through zone information
    */
   async getZoneRecords(zoneId) {
     try {
       logger.info(`Fetching DNS records for zone: ${zoneId}`);
-      const response = await this.client.get(`/api/v1/servers/localhost/zones/${zoneId}/records`);
-      logger.info(`Successfully fetched ${response.data.length} records for zone: ${zoneId}`);
-      return response.data;
+      const response = await this.client.get(`/api/v1/servers/localhost/zones/${zoneId}`);
+      const zoneData = response.data;
+      const records = zoneData.rrsets || [];
+      logger.info(`Successfully fetched ${records.length} records for zone: ${zoneId}`);
+      return records;
     } catch (error) {
       logger.error(`Failed to fetch DNS records for zone ${zoneId}:`, error.response?.data || error.message);
       throw new Error(`Failed to fetch DNS records for zone ${zoneId}: ${error.response?.data?.message || error.message}`);
@@ -40,7 +43,35 @@ class PDAApiService {
   }
 
   /**
+   * Get DNS records for specific domain in a zone
+   */
+  async getDomainRecords(zoneId, domain) {
+    try {
+      logger.info(`Fetching DNS records for domain: ${domain}.${zoneId}`);
+      
+      // Get all records for the zone
+      const allRecords = await this.getZoneRecords(zoneId);
+      
+      // Filter records for the specified domain
+      const domainRecords = allRecords.filter(record => {
+        const recordName = record.name.replace(/\.$/, ''); // Remove trailing dot
+        const targetDomain = `${domain}.${zoneId}`;
+        return recordName === targetDomain;
+      });
+      
+      logger.info(`Found ${domainRecords.length} records for domain: ${domain}.${zoneId}`);
+      return domainRecords;
+      
+    } catch (error) {
+      logger.error(`Failed to fetch DNS records for domain ${domain}.${zoneId}:`, error.message);
+      throw new Error(`Failed to fetch DNS records for domain ${domain}.${zoneId}: ${error.message}`);
+    }
+  }
+
+  /**
    * Create or update NS records (overwrite operation)
+   * Fixed RRSet format according to PDA API documentation
+   * name field must end with dot, content field must also end with dot
    */
   async createNSRecord(zoneId, domain, nameservers) {
     try {
@@ -48,11 +79,12 @@ class PDAApiService {
       
       const record = {
         rrsets: [{
-          name: `${domain}.${zoneId}.`,
+          name: `${domain}.${zoneId}.`, // According to documentation, name must end with dot
           type: 'NS',
           ttl: 300,
+          changetype: 'REPLACE', // According to API documentation, changetype is required
           records: nameservers.map(ns => ({
-            content: `${ns}.`,
+            content: `${ns}.`, // NS record content must end with dot
             disabled: false
           }))
         }]
@@ -68,6 +100,7 @@ class PDAApiService {
 
   /**
    * Delete NS records
+   * Fixed delete format according to PDA API documentation
    */
   async deleteNSRecord(zoneId, domain) {
     try {
@@ -75,9 +108,9 @@ class PDAApiService {
       
       const record = {
         rrsets: [{
-          name: `${domain}.${zoneId}.`,
+          name: `${domain}.${zoneId}.`, // According to documentation, name must end with dot
           type: 'NS',
-          changetype: 'DELETE'
+          changetype: 'DELETE' // According to API documentation, changetype is required for deletion
         }]
       };
 
@@ -104,7 +137,56 @@ class PDAApiService {
     }
   }
 
+  /**
+   * Get zone information
+   */
+  async getZoneInfo(zoneId) {
+    try {
+      logger.info(`Fetching zone information for: ${zoneId}`);
+      const response = await this.client.get(`/api/v1/servers/localhost/zones/${zoneId}`);
+      logger.info(`Successfully fetched zone information for: ${zoneId}`);
+      return response.data;
+    } catch (error) {
+      logger.error(`Failed to fetch zone information for ${zoneId}:`, error.response?.data || error.message);
+      throw new Error(`Failed to fetch zone information for ${zoneId}: ${error.response?.data?.message || error.message}`);
+    }
+  }
 
+  /**
+   * List all zones
+   */
+  async listZones() {
+    try {
+      logger.info('Fetching all zones');
+      const response = await this.client.get('/api/v1/servers/localhost/zones');
+      logger.info(`Successfully fetched ${response.data.length} zones`);
+      return response.data;
+    } catch (error) {
+      logger.error('Failed to fetch zones:', error.response?.data || error.message);
+      throw new Error(`Failed to fetch zones: ${error.response?.data?.message || error.message}`);
+    }
+  }
+
+  /**
+   * Test API connection
+   */
+  async testConnection() {
+    try {
+      logger.info('Testing PDA API connection');
+      const response = await this.client.get('/api/v1/servers/localhost');
+      logger.info('PDA API connection test successful');
+      return {
+        success: true,
+        serverInfo: response.data
+      };
+    } catch (error) {
+      logger.error('PDA API connection test failed:', error.response?.data || error.message);
+      return {
+        success: false,
+        error: error.response?.data?.message || error.message
+      };
+    }
+  }
 }
 
 module.exports = PDAApiService; 
