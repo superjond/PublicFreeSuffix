@@ -62,8 +62,9 @@ class DNSSyncHandler {
     const operation = process.env.MANUAL_OPERATION || 'auto';
     const whoisFile = process.env.MANUAL_WHOIS_FILE;
     const forceSync = process.env.FORCE_SYNC === 'true';
+    const whoisFilePath = process.env.WHOIS_FILE_PATH;
     
-    logger.info(`Manual trigger parameters: domain=${domain}, operation=${operation}, whoisFile=${whoisFile}, forceSync=${forceSync}`);
+    logger.info(`Manual trigger parameters: domain=${domain}, operation=${operation}, whoisFile=${whoisFile}, forceSync=${forceSync}, whoisFilePath=${whoisFilePath}`);
     
     // Validate parameters
     if (!domain && !whoisFile) {
@@ -75,7 +76,13 @@ class DNSSyncHandler {
     
     // If WHOIS file is specified, read data from file
     if (whoisFile) {
-      const fullPath = whoisFile.startsWith('whois/') ? whoisFile : `whois/${whoisFile}`;
+      let fullPath;
+      if (whoisFilePath) {
+        // Use the separate WHOIS file path
+        fullPath = `${whoisFilePath}/${whoisFile.replace('whois/', '')}`;
+      } else {
+        fullPath = whoisFile.startsWith('whois/') ? whoisFile : `whois/${whoisFile}`;
+      }
       logger.info(`Reading WHOIS data from file: ${fullPath}`);
       
       try {
@@ -93,7 +100,13 @@ class DNSSyncHandler {
     
     // If domain is specified but no WHOIS file, try to find corresponding WHOIS file
     if (domain && !whoisData) {
-      const domainFile = `whois/${domain}.json`;
+      let domainFile;
+      if (whoisFilePath) {
+        // Use the separate WHOIS file path
+        domainFile = `${whoisFilePath}/${domain}.json`;
+      } else {
+        domainFile = `whois/${domain}.json`;
+      }
       logger.info(`Attempting to read WHOIS file for domain: ${domainFile}`);
       
       try {
@@ -123,12 +136,16 @@ class DNSSyncHandler {
       };
     }
     
+    // Map operation types for compatibility
+    const mappedOperation = this.mapOperationType(operation);
+    logger.info(`Mapped manual operation from ${operation} to ${mappedOperation}`);
+    
     // Execute DNS sync operation
     const result = await this.dnsManager.handleManualSync(
       process.env.PR_TITLE || 'Manual DNS Sync',
       whoisData,
       {
-        operation: operation,
+        operation: mappedOperation,
         forceSync: forceSync,
         triggeredBy: process.env.GITHUB_ACTOR || 'unknown'
       }
@@ -150,6 +167,8 @@ class DNSSyncHandler {
     // Get environment variables
     const prTitle = process.env.PR_TITLE;
     const prFiles = process.env.PR_FILES;
+    const whoisFilePath = process.env.WHOIS_FILE_PATH;
+    const operation = process.env.OPERATION || 'auto';
     
     if (!prTitle) {
       throw new Error('PR_TITLE environment variable is required');
@@ -160,6 +179,8 @@ class DNSSyncHandler {
     }
     
     logger.info(`Processing PR: ${prTitle}`);
+    logger.info(`WHOIS file path: ${whoisFilePath}`);
+    logger.info(`Operation: ${operation}`);
     
     // Parse PR file changes
     const files = JSON.parse(prFiles);
@@ -195,8 +216,22 @@ class DNSSyncHandler {
       logger.info('DNS deletion process completed successfully');
       return result;
     } else {
-      // For registration/update, read the whois file content
-      const whoisData = await FileUtils.readWhoisFile(whoisFile.filename);
+      // For registration/update, read the whois file content from separate path
+      let filePath = whoisFile.filename;
+      if (whoisFilePath) {
+        // Use the separate WHOIS file path
+        const fileName = whoisFile.filename.replace('whois/', '');
+        filePath = `${whoisFilePath}/${fileName}`;
+        logger.info(`Reading WHOIS file from separate path: ${filePath}`);
+      }
+      
+      const whoisData = await FileUtils.readWhoisFile(filePath);
+      
+      // Map operation types for compatibility
+      if (operation !== 'auto') {
+        whoisData.operation = this.mapOperationType(operation);
+        logger.info(`Mapped operation from ${operation} to ${whoisData.operation}`);
+      }
       
       // Execute DNS sync operation
       const result = await this.dnsManager.handlePRMerge(prTitle, whoisData);
@@ -207,6 +242,21 @@ class DNSSyncHandler {
       logger.info('DNS sync process completed successfully');
       return result;
     }
+  }
+
+  /**
+   * Map operation types for compatibility between workflow and DNS manager
+   */
+  mapOperationType(operation) {
+    const operationMap = {
+      'add': 'registration',
+      'update': 'update', 
+      'delete': 'remove',
+      'registration': 'registration',
+      'remove': 'remove'
+    };
+    
+    return operationMap[operation] || operation;
   }
 }
 
