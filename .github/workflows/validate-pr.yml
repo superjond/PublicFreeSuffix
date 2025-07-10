@@ -168,9 +168,13 @@ jobs:
           
           let validationResult;
           try {
+            console.log('Reading validation result file...');
             const resultData = fs.readFileSync('pr/.github/scripts/validation-result.json', 'utf8');
+            console.log('Validation result file content:', resultData);
             validationResult = JSON.parse(resultData);
+            console.log('Parsed validation result:', JSON.stringify(validationResult, null, 2));
           } catch (error) {
+            console.error('Error reading validation result:', error);
             validationResult = {
               isValid: false,
               errors: ['Failed to read validation results'],
@@ -193,19 +197,18 @@ jobs:
              comment.body.includes('PR Validation Failed'))
           );
           
-          const commentBody = validationResult.report + 
-            '\n\n---\n' + 
-            ('${{ github.event_name }}' === 'workflow_dispatch' 
-              ? '*This validation was triggered manually by @${{ github.actor }}*' 
-              : '*This validation was triggered automatically*') +
-            '\n\n*Validation Time: ' + new Date().toISOString() + '*';
+          // 只使用验证结果中的报告，不添加额外信息
+          const commentBody = validationResult.report;
+          console.log('Generated comment body:', commentBody);
           
           // Delete all existing validation comments except the most recent one
           if (validationComments.length > 0) {
+            console.log(`Found ${validationComments.length} existing validation comments`);
             // Sort comments by creation time, newest first
             validationComments.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
             
             // Update the most recent comment
+            console.log('Updating most recent comment:', validationComments[0].id);
             await github.rest.issues.updateComment({
               owner: context.repo.owner,
               repo: context.repo.repo,
@@ -215,6 +218,7 @@ jobs:
             
             // Delete any other validation comments
             for (let i = 1; i < validationComments.length; i++) {
+              console.log(`Deleting old comment: ${validationComments[i].id}`);
               await github.rest.issues.deleteComment({
                 owner: context.repo.owner,
                 repo: context.repo.repo,
@@ -222,6 +226,7 @@ jobs:
               });
             }
           } else {
+            console.log('No existing validation comments found, creating new comment');
             // Create new comment if no existing validation comments found
             await github.rest.issues.createComment({
               owner: context.repo.owner,

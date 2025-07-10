@@ -677,16 +677,10 @@ class PRValidator {
       : this.generateFailureReport(validationResult, mentionUser);
 
     try {
-      // Post the report as a PR comment
+      // Only update PR labels based on validation result
       if (process.env.PR_NUMBER) {
         const [owner, repo] = config.github.repository.split('/');
-        await githubService.createPullRequestComment(
-          process.env.PR_NUMBER,
-          report,
-          owner,
-          repo
-        );
-
+        
         // Update PR labels based on validation result
         const labels = validationResult.isValid
           ? ['validation-passed']
@@ -700,7 +694,7 @@ class PRValidator {
         );
       }
     } catch (error) {
-      logger.error('Failed to post validation report:', error);
+      logger.error('Failed to update PR labels:', error);
     }
 
     return report;
