@@ -4,8 +4,6 @@
   "sld": "no.kg",
   "nameservers": [
     "ns62.cloudns.com",
-    "ns63.cloudns.net",
-    "ns64.cloudns.uk",
     "dns.cloudfalre.com"
   ],
   "agree_to_agreements": {
