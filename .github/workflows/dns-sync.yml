@@ -169,12 +169,22 @@ jobs:
       id: handle-whois-pr
       if: steps.trigger-info.outputs.trigger_type == 'pr_merge'
       run: |
+        # Set safe shell options
+        set -euo pipefail
+        
         # Create separate directory for WHOIS files
         mkdir -p /tmp/whois_files
         
         # Get file changes from PR
         FILES=$(echo '${{ steps.pr-info.outputs.files }}' | jq -r '.[] | select(.filename | startswith("whois/")) | .filename')
         echo "Found whois files in PR: $FILES"
+        
+        # Validate file paths for security
+        for file in $FILES; do
+          if [[ "$file" != whois/*.json ]]; then
+            echo "⚠️  Warning: Unexpected file path format: $file"
+          fi
+        done
         
         # Determine operation type from PR title and body
         PR_TITLE="${{ steps.pr-info.outputs.pr-title }}"
@@ -221,7 +231,16 @@ jobs:
           for file in $FILES; do
             if [ -f "$file" ]; then
               echo "Reading $file from PR branch for delete operation"
-              cat "$file"
+              # Safely display file content without executing it
+              echo "File content (first 10 lines):"
+              head -10 "$file" | sed 's/^/  /'
+              echo "..."
+              # Validate JSON format
+              if jq empty "$file" 2>/dev/null; then
+                echo "✅ JSON validation passed for $file"
+              else
+                echo "⚠️  JSON validation failed for $file"
+              fi
               # Copy to separate directory
               cp "$file" "/tmp/whois_files/"
               echo "Copied $file to /tmp/whois_files/"
@@ -239,7 +258,16 @@ jobs:
           for file in $FILES; do
             if [ -f "$file" ]; then
               echo "Reading $file from merged repository"
-              cat "$file"
+              # Safely display file content without executing it
+              echo "File content (first 10 lines):"
+              head -10 "$file" | sed 's/^/  /'
+              echo "..."
+              # Validate JSON format
+              if jq empty "$file" 2>/dev/null; then
+                echo "✅ JSON validation passed for $file"
+              else
+                echo "⚠️  JSON validation failed for $file"
+              fi
               # Copy to separate directory
               cp "$file" "/tmp/whois_files/"
               echo "Copied $file to /tmp/whois_files/"
@@ -262,6 +290,9 @@ jobs:
       id: handle-whois-manual
       if: steps.trigger-info.outputs.trigger_type == 'manual'
       run: |
+        # Set safe shell options
+        set -euo pipefail
+        
         echo "=== Manual Trigger WHOIS File Handling ==="
         
         # Create separate directory for WHOIS files
@@ -272,7 +303,16 @@ jobs:
           WHOIS_FILE="whois/${{ steps.trigger-info.outputs.whois_file }}"
           if [ -f "$WHOIS_FILE" ]; then
             echo "Using specified WHOIS file: $WHOIS_FILE"
-            cat "$WHOIS_FILE"
+            # Safely display file content without executing it
+            echo "File content (first 10 lines):"
+            head -10 "$WHOIS_FILE" | sed 's/^/  /'
+            echo "..."
+            # Validate JSON format
+            if jq empty "$WHOIS_FILE" 2>/dev/null; then
+              echo "✅ JSON validation passed for $WHOIS_FILE"
+            else
+              echo "⚠️  JSON validation failed for $WHOIS_FILE"
+            fi
             # Copy to separate directory
             cp "$WHOIS_FILE" "/tmp/whois_files/"
             echo "Copied $WHOIS_FILE to /tmp/whois_files/"
@@ -289,7 +329,16 @@ jobs:
             DOMAIN_FILE="whois/${DOMAIN}.json"
             if [ -f "$DOMAIN_FILE" ]; then
               echo "Found WHOIS file for domain $DOMAIN: $DOMAIN_FILE"
-              cat "$DOMAIN_FILE"
+              # Safely display file content without executing it
+              echo "File content (first 10 lines):"
+              head -10 "$DOMAIN_FILE" | sed 's/^/  /'
+              echo "..."
+              # Validate JSON format
+              if jq empty "$DOMAIN_FILE" 2>/dev/null; then
+                echo "✅ JSON validation passed for $DOMAIN_FILE"
+              else
+                echo "⚠️  JSON validation failed for $DOMAIN_FILE"
+              fi
               # Copy to separate directory
               cp "$DOMAIN_FILE" "/tmp/whois_files/"
               echo "Copied $DOMAIN_FILE to /tmp/whois_files/"
