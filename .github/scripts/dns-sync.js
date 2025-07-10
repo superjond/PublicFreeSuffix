@@ -1,6 +1,7 @@
 const DNSRecordManager = require('./services/dns-record-manager');
 const FileUtils = require('./utils/file-utils');
 const logger = require('./logger');
+const path = require('path');
 
 class DNSSyncHandler {
   constructor() {
@@ -166,7 +167,6 @@ class DNSSyncHandler {
     
     // Get environment variables
     const prTitle = process.env.PR_TITLE;
-    const prFiles = process.env.PR_FILES;
     const whoisFilePath = process.env.WHOIS_FILE_PATH;
     const operation = process.env.OPERATION || 'auto';
     
@@ -174,16 +174,30 @@ class DNSSyncHandler {
       throw new Error('PR_TITLE environment variable is required');
     }
     
-    if (!prFiles) {
-      throw new Error('PR_FILES environment variable is required');
-    }
-    
     logger.info(`Processing PR: ${prTitle}`);
     logger.info(`WHOIS file path: ${whoisFilePath}`);
     logger.info(`Operation: ${operation}`);
     
-    // Parse PR file changes
-    const files = JSON.parse(prFiles);
+    // Read PR files from JSON file
+    let files = [];
+    try {
+      const fs = require('fs');
+      const prFilesPath = path.join(process.cwd(), 'pr-files.json');
+      logger.info(`Reading PR files from: ${prFilesPath}`);
+      
+      if (fs.existsSync(prFilesPath)) {
+        const prFilesContent = fs.readFileSync(prFilesPath, 'utf8');
+        files = JSON.parse(prFilesContent);
+        logger.info(`Successfully read PR files from file`);
+      } else {
+        logger.warn('PR files JSON file not found, using empty array');
+        files = [];
+      }
+    } catch (error) {
+      logger.error(`Failed to read PR files from JSON file: ${error.message}`);
+      throw new Error(`Failed to read PR files: ${error.message}`);
+    }
+    
     logger.info(`Parsed PR files: ${JSON.stringify(files, null, 2)}`);
     
     const whoisFile = FileUtils.extractWhoisFiles(files);

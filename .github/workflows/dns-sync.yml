@@ -303,18 +303,20 @@ jobs:
         # Set different parameters based on trigger type
         if [ "${{ steps.trigger-info.outputs.trigger_type }}" = "manual" ]; then
           export PR_TITLE="Manual DNS Sync - ${{ steps.trigger-info.outputs.triggered_by }}"
-          export PR_FILES="[]"
           export MANUAL_DOMAIN="${{ steps.trigger-info.outputs.domain }}"
           export MANUAL_OPERATION="${{ steps.trigger-info.outputs.operation }}"
           export MANUAL_WHOIS_FILE="${{ steps.trigger-info.outputs.whois_file }}"
           export FORCE_SYNC="${{ steps.trigger-info.outputs.force_sync }}"
+          # Write empty PR files for manual trigger
+          echo "[]" > pr-files.json
         else
           export PR_TITLE="${{ steps.pr-info.outputs.pr-title }}"
-          export PR_FILES="${{ steps.pr-info.outputs.files }}"
           export MANUAL_DOMAIN=""
           export MANUAL_OPERATION=""
           export MANUAL_WHOIS_FILE=""
           export FORCE_SYNC="false"
+          # Write PR files to JSON file to avoid shell parsing issues
+          echo '${{ steps.pr-info.outputs.files }}' > pr-files.json
         fi
         
         # Execute DNS sync script
