@@ -186,27 +186,42 @@ jobs:
             issue_number: parseInt(prNumber)
           });
           
-          const botComment = comments.find(comment => 
-            comment.user.type === 'Bot' && 
-            comment.body.includes('PR Validation')
+          const validationComments = comments.filter(comment => 
+            comment.user.login === 'github-actions[bot]' && 
+            (comment.body.includes('PR Validation Passed') || 
+             comment.body.includes('PR Validation Failed'))
           );
           
           const commentBody = validationResult.report + 
             '\n\n---\n' + 
             ('${{ github.event_name }}' === 'workflow_dispatch' 
               ? '*This validation was triggered manually by @${{ github.actor }}*' 
-              : '*This validation was triggered automatically*');
+              : '*This validation was triggered automatically*') +
+            '\n\n*Validation Time: ' + new Date().toISOString() + '*';
           
-          if (botComment) {
-            // Update existing comment
+          // Delete all existing validation comments except the most recent one
+          if (validationComments.length > 0) {
+            // Sort comments by creation time, newest first
+            validationComments.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+            
+            // Update the most recent comment
             await github.rest.issues.updateComment({
               owner: context.repo.owner,
               repo: context.repo.repo,
-              comment_id: botComment.id,
+              comment_id: validationComments[0].id,
               body: commentBody
             });
+            
+            // Delete any other validation comments
+            for (let i = 1; i < validationComments.length; i++) {
+              await github.rest.issues.deleteComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                comment_id: validationComments[i].id
+              });
+            }
           } else {
-            // Create new comment
+            // Create new comment if no existing validation comments found
             await github.rest.issues.createComment({
               owner: context.repo.owner,
               repo: context.repo.repo,
