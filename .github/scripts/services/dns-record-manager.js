@@ -28,6 +28,19 @@ class DNSRecordManager {
    * Validate whois file data
    */
   validateWhoisData(whoisData) {
+    // For delete operations, we only need domain and sld
+    if (whoisData.operation === 'delete') {
+      const requiredFields = ['domain', 'sld'];
+      const missingFields = requiredFields.filter(field => !whoisData[field]);
+      
+      if (missingFields.length > 0) {
+        throw new Error(`Missing required fields in whois data for delete operation: ${missingFields.join(', ')}`);
+      }
+      
+      return true;
+    }
+    
+    // For registration/update operations, we need all fields including nameservers
     const requiredFields = ['domain', 'sld', 'nameservers'];
     const missingFields = requiredFields.filter(field => !whoisData[field]);
     

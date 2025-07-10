@@ -37,9 +37,9 @@ jobs:
     - name: Install dependencies
       working-directory: .github/scripts
       run: |
-        # 确保生成 package-lock.json
+        # Ensure package-lock.json is generated
         npm install
-        # 使用 ci 进行清洁安装
+        # Use ci for clean installation
         npm ci
 
     - name: Get PR information

@@ -18,7 +18,7 @@ jobs:
     if: github.event.pull_request.merged == true
     
     steps:
-    - name: Checkout repository
+    - name: Checkout main branch (for scripts and dependencies)
       uses: actions/checkout@v4
       with:
         fetch-depth: 0
@@ -92,29 +92,32 @@ jobs:
         echo "PR Files: ${{ steps.pr-info.outputs.files }}"
         echo "Merge SHA: ${{ steps.pr-info.outputs.merge-sha }}"
 
-    # 1. Checkout PR head (before merge, can read deleted files)
-    - name: Checkout PR head (before merge)
+    # Checkout PR head to a separate directory for whois files
+    - name: Checkout PR head (for whois files only)
       uses: actions/checkout@v4
       with:
         ref: ${{ steps.pr-info.outputs.head-sha }}
+        path: pr-files
         fetch-depth: 0
         token: ${{ secrets.MY_GITHUB_TOKEN }}
 
-    # 2. Read whois file content (can read whether it's registration, update, or deletion)
+    # Read whois file content from PR branch
     - name: Read whois file content
       id: read-whois
       run: |
         FILES=$(echo '${{ steps.pr-info.outputs.files }}' | jq -r '.[] | select(.filename | startswith("whois/")) | .filename')
         for file in $FILES; do
-          if [ -f \"$file\" ]; then
-            echo "Reading $file"
-            cat \"$file\"
+          if [ -f "pr-files/$file" ]; then
+            echo "Reading $file from PR branch"
+            cat "pr-files/$file"
+            # Copy to main workspace for script access
+            cp "pr-files/$file" "$file"
           else
-            echo "File $file not found in head branch"
+            echo "File $file not found in PR branch"
           fi
         done
 
-    # 3. Install dependencies, execute sync script, etc. (whois file content is now available)
+    # Execute DNS sync script (using main branch scripts)
     - name: Execute DNS Sync
       id: dns-sync
       if: steps.pr-info.outputs.pr-title != ''

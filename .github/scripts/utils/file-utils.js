@@ -8,11 +8,15 @@ class FileUtils {
    */
   async readWhoisFile(filePath) {
     try {
-      logger.info(`Reading whois file: ${filePath}`);
-      const content = await fs.readFile(filePath, 'utf8');
+      // Get the workspace root directory (two levels up from .github/scripts)
+      const workspaceRoot = path.resolve(__dirname, '../../');
+      const fullPath = path.join(workspaceRoot, filePath);
+      
+      logger.info(`Reading whois file: ${fullPath}`);
+      const content = await fs.readFile(fullPath, 'utf8');
       const whoisData = JSON.parse(content);
       
-      logger.info(`Successfully parsed whois file: ${filePath}`);
+      logger.info(`Successfully parsed whois file: ${fullPath}`);
       return whoisData;
     } catch (error) {
       if (error.code === 'ENOENT') {
@@ -31,8 +35,7 @@ class FileUtils {
   extractWhoisFiles(files) {
     const whoisFiles = files.filter(file => 
       file.filename.startsWith('whois/') && 
-      file.filename.endsWith('.json') &&
-      file.status !== 'removed'
+      file.filename.endsWith('.json')
     );
     
     if (whoisFiles.length === 0) {
@@ -41,6 +44,27 @@ class FileUtils {
     
     if (whoisFiles.length > 1) {
       throw new Error(`Multiple whois files found in PR changes: ${whoisFiles.map(f => f.filename).join(', ')}`);
+    }
+    
+    return whoisFiles[0];
+  }
+
+  /**
+   * Extract whois file paths for non-removed files only
+   */
+  extractNonRemovedWhoisFiles(files) {
+    const whoisFiles = files.filter(file => 
+      file.filename.startsWith('whois/') && 
+      file.filename.endsWith('.json') &&
+      file.status !== 'removed'
+    );
+    
+    if (whoisFiles.length === 0) {
+      throw new Error('No non-removed whois files found in PR changes');
+    }
+    
+    if (whoisFiles.length > 1) {
+      throw new Error(`Multiple non-removed whois files found in PR changes: ${whoisFiles.map(f => f.filename).join(', ')}`);
     }
     
     return whoisFiles[0];

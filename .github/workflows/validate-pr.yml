@@ -1,12 +1,12 @@
 name: validate-pr
 
 on:
-  # 自动触发
-  pull_request_target:  # 改用 pull_request_target 以获得正确的token权限
+  # Auto trigger
+  pull_request_target:  # Use pull_request_target to get correct token permissions
     types: [opened, synchronize, reopened, edited]
     paths:
       - 'whois/*.json'
-  # 手动触发
+  # Manual trigger
   workflow_dispatch:
     inputs:
       pr_number:
@@ -19,7 +19,7 @@ on:
         type: boolean
         default: false
 
-# 全局权限设置
+# Global permissions
 permissions: write-all
 
 jobs:
@@ -60,11 +60,11 @@ jobs:
     - name: Install dependencies
       working-directory: pr/.github/scripts
       run: |
-        # 确保生成 package-lock.json
+        # Ensure package-lock.json is generated
         if [ ! -f "package-lock.json" ]; then
           npm install
         fi
-        # 使用 ci 进行清洁安装
+        # Use ci for clean installation
         npm ci
 
     - name: Get PR information
@@ -75,7 +75,7 @@ jobs:
         script: |
           try {
             let prNumber;
-            // 根据触发方式获取 PR 号
+            // Get PR number based on trigger method
             if ('${{ github.event_name }}' === 'workflow_dispatch') {
               prNumber = '${{ github.event.inputs.pr_number }}';
               const forceValidation = '${{ github.event.inputs.force_validation }}' === 'true';
@@ -94,21 +94,21 @@ jobs:
               prNumber = context.payload.pull_request.number;
             }
             
-            // 获取PR信息
+            // Get PR information
             const { data: pullRequest } = await github.rest.pulls.get({
               owner: context.repo.owner,
               repo: context.repo.repo,
               pull_number: parseInt(prNumber)
             });
             
-            // 获取文件变更
+            // Get file changes
             const { data: files } = await github.rest.pulls.listFiles({
               owner: context.repo.owner,
               repo: context.repo.repo,
               pull_number: parseInt(prNumber)
             });
             
-            // 确保所有输出都有值
+            // Ensure all outputs have values
             core.setOutput('pr-title', pullRequest.title || '');
             core.setOutput('pr-body', pullRequest.body || '');
             core.setOutput('pr-number', prNumber.toString());
@@ -120,7 +120,7 @@ jobs:
             
           } catch (error) {
             core.setFailed(`Failed to get PR information: ${error.message}`);
-            // 设置默认值以防止后续步骤出错
+            // Set default values to prevent subsequent steps from failing
             core.setOutput('pr-title', '');
             core.setOutput('pr-body', '');
             core.setOutput('pr-number', '0');
@@ -197,7 +197,7 @@ jobs:
              comment.body.includes('PR Validation Failed'))
           );
           
-          // 只使用验证结果中的报告，不添加额外信息
+          // Only use the report from validation result, don't add extra information
           const commentBody = validationResult.report;
           console.log('Generated comment body:', commentBody);
           
@@ -260,13 +260,13 @@ jobs:
             description = 'Failed to read validation results';
           }
           
-          // 使用 status API 而不是 checks API
+          // Use status API instead of checks API
           await github.rest.repos.createCommitStatus({
             owner: context.repo.owner,
             repo: context.repo.repo,
             sha: '${{ steps.pr-info.outputs.head-sha }}',
             state: state,
-            description: description.substring(0, 140), // GitHub 状态描述限制为 140 字符
+            description: description.substring(0, 140), // GitHub status description limited to 140 characters
             context: 'validate-pr'
           });
 
