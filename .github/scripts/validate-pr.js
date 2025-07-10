@@ -745,7 +745,7 @@ ${mentionUser ? `@${mentionUser} ` : ''}**The following issues were found:**
       });
     }
 
-    report += `\n**Need help?** Please refer to the [PR template](${config.github.templateUrl}) or check the project documentation.`;
+    report += `\n**Need help?** Please refer to the [README](${config.github.readmeUrl}), [PR template](${config.github.templateUrl}) or check the project documentation.`;
 
     return report;
   }
