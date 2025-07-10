@@ -1,6 +1,7 @@
 const fs = require('fs');
 const path = require('path');
 const config = require('./config');
+const logger = require('./logger');
 
 class ReservedWordsService {
   constructor() {
@@ -19,11 +20,11 @@ class ReservedWordsService {
     try {
       // Check if cache is still valid
       if (this.isCacheValid()) {
-        console.log('Using cached reserved words list');
+        logger.info('Using cached reserved words list');
         return this.cachedWords;
       }
 
-      console.log('Cache expired or not exists, reading reserved words from local file');
+      logger.info('Cache expired or not exists, reading reserved words from local file');
       
       // Try to read from local file
       const localWords = await this.readLocalWords();
@@ -33,12 +34,12 @@ class ReservedWordsService {
         this.updateCache(localWords);
         return localWords;
       } else {
-        console.warn('Local file read failed, using fallback reserved words list');
+        logger.warn('Local file read failed, using fallback reserved words list');
         return this.getFallbackWords();
       }
 
     } catch (error) {
-      console.error('Error occurred while getting reserved words:', error.message);
+      logger.error(`Error occurred while getting reserved words: ${error.message}`);
       return this.getAvailableWords();
     }
   }
@@ -49,17 +50,17 @@ class ReservedWordsService {
   async readLocalWords() {
     try {
       const filePath = path.resolve(__dirname, config.reservedWords.localPath);
-      console.log(`Reading reserved words from local file: ${filePath}`);
+      logger.info(`Reading reserved words from local file: ${filePath}`);
 
       const data = await fs.promises.readFile(filePath, 'utf8');
       
       // Parse reserved words file content
       const words = this.parseReservedWordsContent(data);
-      console.log(`Successfully read ${words.length} reserved words`);
+      logger.info(`Successfully read ${words.length} reserved words`);
       return words;
 
     } catch (error) {
-      console.error('Failed to read local reserved words:', error.message);
+      logger.error(`Failed to read local reserved words: ${error.message}`);
       throw error;
     }
   }
