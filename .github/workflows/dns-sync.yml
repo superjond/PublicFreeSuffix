@@ -160,35 +160,30 @@ jobs:
         FILES=$(echo '${{ steps.pr-info.outputs.files }}' | jq -r '.[] | select(.filename | startswith("whois/")) | .filename')
         echo "Processing WHOIS files: $FILES"
         
-        # Determine operation type from PR title and body
+        # Determine operation type from PR title only
         PR_TITLE="${{ steps.pr-info.outputs.pr-title }}"
-        # Safely handle PR body to prevent shell execution issues
-        PR_BODY="${{ steps.pr-info.outputs.pr-body }}"
-        # Create a safe version of PR body for pattern matching (limit length and escape special chars)
-        if [ -n "$PR_BODY" ]; then
-          PR_BODY_SAFE=$(printf '%s' "$PR_BODY" | tr -d '\r' | head -c 500 | sed 's/[[:space:]]*$//')
-        else
-          PR_BODY_SAFE=""
-        fi
         
         # Default to 'auto' operation
         OPERATION="auto"
         
-        # Determine operation type from PR title and body
-        if [[ "$PR_TITLE" =~ [Rr]egistration ]] || [[ "$PR_BODY_SAFE" =~ [Rr]egistration ]]; then
+        # Determine operation type from PR title format: "Registration/Update/Remove: domain"
+        if [[ "$PR_TITLE" =~ ^[Rr]egistration: ]]; then
           OPERATION="add"
-        elif [[ "$PR_TITLE" =~ [Uu]pdate ]] || [[ "$PR_BODY_SAFE" =~ [Uu]pdate ]]; then
+        elif [[ "$PR_TITLE" =~ ^[Uu]pdate: ]]; then
           OPERATION="update"
-        elif [[ "$PR_TITLE" =~ [Rr]emove ]] || [[ "$PR_BODY_SAFE" =~ [Rr]emove ]]; then
+        elif [[ "$PR_TITLE" =~ ^[Rr]emove: ]]; then
           OPERATION="delete"
-        elif [[ "$PR_TITLE" == *"delete"* ]] || [[ "$PR_BODY_SAFE" == *"delete"* ]]; then
-          OPERATION="delete"
-        elif [[ "$PR_TITLE" == *"add"* ]] || [[ "$PR_BODY_SAFE" == *"add"* ]]; then
-          OPERATION="add"
-        elif [[ "$PR_TITLE" == *"update"* ]] || [[ "$PR_BODY_SAFE" == *"update"* ]]; then
-          OPERATION="update"
         else
-          OPERATION="auto"
+          # Fallback to pattern matching for backward compatibility
+          if [[ "$PR_TITLE" =~ [Rr]egistration ]]; then
+            OPERATION="add"
+          elif [[ "$PR_TITLE" =~ [Uu]pdate ]]; then
+            OPERATION="update"
+          elif [[ "$PR_TITLE" =~ [Rr]emove ]]; then
+            OPERATION="delete"
+          else
+            OPERATION="auto"
+          fi
         fi
         
         echo "Operation: $OPERATION"
