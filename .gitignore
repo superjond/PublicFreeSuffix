@@ -2,3 +2,5 @@
 /.idea
 .github/scripts/node_modules/
 .cursor
+.cursor/
+.vscode/
