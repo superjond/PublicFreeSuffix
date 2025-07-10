@@ -93,6 +93,7 @@ jobs:
         PR_FILES: ${{ steps.pr-info.outputs.files }}
         HEAD_SHA: ${{ steps.pr-info.outputs.head-sha }}
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        MY_GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         GITHUB_REPOSITORY: ${{ github.repository }}
 
     - name: Comment validation result
