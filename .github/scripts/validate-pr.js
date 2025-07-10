@@ -495,9 +495,9 @@ class PRValidator {
       return result;
     }
 
-    // Length validation
-    if (domain.length <= 3) {
-      result.error = `domain must be more than 3 characters. Current length: ${domain.length}`;
+    // Length validation - allow 3 characters or more
+    if (domain.length < 3) {
+      result.error = `domain must be at least 3 characters. Current length: ${domain.length}`;
       return result;
     }
 

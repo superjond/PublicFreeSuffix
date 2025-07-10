@@ -34,7 +34,7 @@
 2.4. The domain registration services provided by this service project may be free of charge, as specified at the time of registration. For free domain names, their registration period, renewal policies, etc., may differ from traditional top-level domains and are subject to the rules published by this service project.
 
 2.5. **Domain Registration Rules:** You agree and understand that the second-level domain name (i.e., the custom part before .so.kg or the corresponding part for other suffixes) registered must meet the following conditions:
-  * The domain name length must be greater than 3 characters.
+  * The domain name length must be at least 3 characters.
   * It must not conflict with the existing reserved words list in the PUBLIC Free Suffix Service Project Github repository (specific path: `reserved_words.txt`).
   * It must not use words intended to cause impersonation or confusion for other users, organizations, or the public.
 
