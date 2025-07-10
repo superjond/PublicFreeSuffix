@@ -217,11 +217,32 @@ class DNSSyncHandler {
       
       const [domainName, sld] = domainParts;
       
+      // Try to read the extracted file content for additional validation
+      let whoisData = null;
+      if (whoisFilePath) {
+        try {
+          const extractedFileName = whoisFile.filename.replace('whois/', '');
+          const extractedFilePath = `${whoisFilePath}/${extractedFileName}`;
+          logger.info(`Attempting to read extracted file content from: ${extractedFilePath}`);
+          
+          whoisData = await FileUtils.readWhoisFile(extractedFilePath);
+          logger.info(`Successfully read extracted WHOIS data for deletion`);
+          
+          // Validate that the extracted data matches the filename
+          if (whoisData.domain !== domainName || whoisData.sld !== sld) {
+            logger.warn(`Extracted WHOIS data domain/sld mismatch: expected ${domainName}.${sld}, got ${whoisData.domain}.${whoisData.sld}`);
+          }
+        } catch (error) {
+          logger.warn(`Failed to read extracted file content, proceeding with filename-based deletion: ${error.message}`);
+        }
+      }
+      
       // Execute DNS deletion operation
       const result = await this.dnsManager.handlePRMerge(prTitle, { 
         domain: domainName, 
         sld: sld,
-        operation: 'delete' 
+        operation: 'delete',
+        ...(whoisData && { originalData: whoisData }) // Include original data if available
       });
       
       // Write result file

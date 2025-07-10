@@ -59,7 +59,7 @@ class DNSRecordManager {
    * Execute DNS record operation
    */
   async executeDNSOperation(operation, whoisData) {
-    const { domain, sld, nameservers } = whoisData;
+    const { domain, sld, nameservers, originalData } = whoisData;
     const zoneId = sld;
     
     logger.info(`Executing ${operation} operation for ${domain}.${zoneId}`);
@@ -78,7 +78,7 @@ class DNSRecordManager {
       
       case 'remove':
       case 'delete':
-        return await this.handleRemove(zoneId, domain);
+        return await this.handleRemove(zoneId, domain, originalData);
       
       default:
         throw new Error(`Unsupported operation: ${operation}`);
@@ -106,8 +106,13 @@ class DNSRecordManager {
   /**
    * Handle remove operation
    */
-  async handleRemove(zoneId, domain) {
+  async handleRemove(zoneId, domain, originalData = null) {
     logger.info(`Handling removal for ${domain}.${zoneId}`);
+    
+    // Log original data if available
+    if (originalData) {
+      logger.info(`Original WHOIS data available for deletion: ${JSON.stringify(originalData, null, 2)}`);
+    }
     
     // Directly delete NS records
     await this.pdaService.deleteNSRecord(zoneId, domain);
@@ -116,7 +121,8 @@ class DNSRecordManager {
       success: true,
       message: `Successfully removed NS records for ${domain}.${zoneId}`,
       operation: 'remove',
-      domain: `${domain}.${zoneId}`
+      domain: `${domain}.${zoneId}`,
+      ...(originalData && { originalData })
     };
   }
 

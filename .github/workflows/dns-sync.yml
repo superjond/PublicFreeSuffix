@@ -189,27 +189,68 @@ jobs:
         echo "Operation: $OPERATION"
         
         if [ "$OPERATION" = "delete" ]; then
-          # For delete operations, get files from PR branch
-          git fetch origin ${{ steps.pr-info.outputs.head-sha }}:pr-head
-          git checkout pr-head
+          # For delete operations, extract file content from PR patch information
+          echo "Processing delete operation - extracting file content from PR patch"
           
-          for file in $FILES; do
-            if [ -f "$file" ]; then
-              # Validate JSON format
-              if ! jq empty "$file" 2>/dev/null; then
-                echo "❌ JSON validation failed for $file"
-                exit 1
-              fi
-              # Copy to separate directory
-              cp "$file" "/tmp/whois_files/"
-            else
-              echo "❌ File $file not found in PR branch"
-              exit 1
-            fi
-          done
+          # Get the file information including patch data
+          FILE_INFO=$(echo '${{ steps.pr-info.outputs.files }}' | jq -r '.[] | select(.filename | startswith("whois/"))')
           
-          # Return to main workspace (merged state)
-          git checkout ${{ github.sha }}
+          if [ -z "$FILE_INFO" ]; then
+            echo "❌ No WHOIS file information found in PR"
+            exit 1
+          fi
+          
+          # Extract filename and status
+          FILENAME=$(echo "$FILE_INFO" | jq -r '.filename')
+          STATUS=$(echo "$FILE_INFO" | jq -r '.status')
+          
+          echo "File: $FILENAME, Status: $STATUS"
+          
+          if [ "$STATUS" != "removed" ]; then
+            echo "❌ Expected file status 'removed' for delete operation, but got '$STATUS'"
+            exit 1
+          fi
+          
+          # Extract file content from patch (for removed files, patch contains the original content)
+          PATCH=$(echo "$FILE_INFO" | jq -r '.patch')
+          
+          if [ -z "$PATCH" ] || [ "$PATCH" = "null" ]; then
+            echo "❌ No patch information available for file $FILENAME"
+            exit 1
+          fi
+          
+          # Parse patch to extract the original file content
+          # Patch format for removed files: @@ -1,15 +0,0 @@ followed by the original content with - prefix
+          echo "Extracting file content from patch..."
+          
+          # Extract the content lines (lines starting with - but not @@)
+          # Remove the leading - and reconstruct the JSON with proper formatting
+          # Handle multi-line JSON content properly
+          FILE_CONTENT=$(echo "$PATCH" | grep '^-' | sed 's/^-//' | sed 's/^[[:space:]]*//' | sed 's/[[:space:]]*$//' | tr '\n' ' ' | sed 's/  */ /g')
+          
+          if [ -z "$FILE_CONTENT" ]; then
+            echo "❌ Failed to extract file content from patch"
+            echo "Patch content: $PATCH"
+            exit 1
+          fi
+          
+          # Validate JSON format
+          if ! echo "$FILE_CONTENT" | jq empty 2>/dev/null; then
+            echo "❌ Extracted content is not valid JSON"
+            echo "Extracted content: $FILE_CONTENT"
+            echo "Original patch: $PATCH"
+            exit 1
+          fi
+          
+          # Write the extracted content to a temporary file with proper formatting
+          EXTRACTED_FILE="/tmp/whois_files/$(basename "$FILENAME")"
+          echo "$FILE_CONTENT" | jq . > "$EXTRACTED_FILE"
+          
+          echo "✅ Successfully extracted and validated JSON content"
+          echo "File size: $(wc -c < "$EXTRACTED_FILE") bytes"
+          
+          echo "✅ Successfully extracted file content for deletion: $EXTRACTED_FILE"
+          
         else
           # For add/update operations, use merged repository state
           for file in $FILES; do
