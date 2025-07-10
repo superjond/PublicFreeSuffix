@@ -329,53 +329,54 @@ class PRValidator {
    * Validate JSON content format
    */
   async validateJsonContent(file, prData) {
-    const result = {
-      isValid: false,
-      error: null
-    };
-
+    const result = { isValid: false, error: null };
     try {
-      // Get file content
+      // 1. 获取文件内容
       const fileContent = await this.getFileContent(file, prData);
-      
       if (!fileContent) {
         result.error = 'Unable to get file content';
         return result;
       }
 
-      // Validate JSON format
+      // 2. 验证 JSON 格式
       try {
         const jsonData = JSON.parse(fileContent);
         
-        // Check if it's null or undefined
+        // 3. 基本的 null 检查
         if (jsonData === null || jsonData === undefined) {
           result.error = 'JSON file content cannot be null or undefined';
           return result;
         }
 
-        // Basic JSON structure validation
+        // 4. 验证根级别必须是对象
         if (typeof jsonData !== 'object' || Array.isArray(jsonData)) {
           result.error = 'JSON file root level must be an object';
           return result;
         }
 
-        // Detailed field validation
+        // 5. 调用详细字段验证
         const fieldValidation = await this.validateJsonFields(jsonData);
         if (!fieldValidation.isValid) {
           result.error = fieldValidation.error;
           return result;
         }
 
+        // 添加缓存属性以供后续使用
+        result.validatedData = {
+          registrant: jsonData.registrant,
+          domain: jsonData.domain,
+          sld: jsonData.sld,
+          nameservers: jsonData.nameservers,
+          agree_to_agreements: jsonData.agree_to_agreements
+        };
+
         result.isValid = true;
         return result;
-
       } catch (parseError) {
         result.error = `Invalid JSON format: ${parseError.message}`;
         return result;
       }
-
     } catch (error) {
-      console.error('Error occurred while getting file content:', error);
       result.error = `Error occurred while validating JSON content: ${error.message}`;
       return result;
     }
@@ -385,48 +386,74 @@ class PRValidator {
    * Validate JSON field content
    */
   async validateJsonFields(jsonData) {
-    const result = {
-      isValid: false,
-      error: null
-    };
+    const result = { isValid: false, error: null };
 
-    // 1. Validate registrant field
-    const registrantValidation = registrantValidator.validate(jsonData.registrant);
-    if (!registrantValidation.isValid) {
-      result.error = registrantValidation.error;
+    // 1. 定义必需字段列表
+    const requiredFields = [
+      'registrant',
+      'domain',
+      'sld',
+      'nameservers',
+      'agree_to_agreements'
+    ];
+
+    // 2. 检查是否缺少必需字段
+    const missingFields = requiredFields.filter(field => !(field in jsonData));
+    if (missingFields.length > 0) {
+      result.error = `Missing required fields: ${missingFields.join(', ')}`;
       return result;
     }
 
-    // 2. Validate domain field
-    const domainValidation = await this.validateDomainField(jsonData.domain);
-    if (!domainValidation.isValid) {
-      result.error = domainValidation.error;
+    // 3. 检查是否有多余字段
+    const extraFields = Object.keys(jsonData).filter(field => !requiredFields.includes(field));
+    if (extraFields.length > 0) {
+      result.error = `Unexpected fields found: ${extraFields.join(', ')}`;
       return result;
     }
 
-    // 3. Validate sld field
-    const sldValidation = this.validateSldField(jsonData.sld);
-    if (!sldValidation.isValid) {
-      result.error = sldValidation.error;
+    // 4. 验证各个字段的值
+    try {
+      // 4.1 验证 registrant
+      const registrantValidation = registrantValidator.validate(jsonData.registrant);
+      if (!registrantValidation.isValid) {
+        result.error = `Invalid registrant: ${registrantValidation.error}`;
+        return result;
+      }
+
+      // 4.2 验证 domain
+      const domainValidation = await this.validateDomainField(jsonData.domain);
+      if (!domainValidation.isValid) {
+        result.error = `Invalid domain: ${domainValidation.error}`;
+        return result;
+      }
+
+      // 4.3 验证 sld
+      const sldValidation = await this.validateSldField(jsonData.sld);
+      if (!sldValidation.isValid) {
+        result.error = `Invalid sld: ${sldValidation.error}`;
+        return result;
+      }
+
+      // 4.4 验证 nameservers
+      const nameserversValidation = nameserversValidator.validate(jsonData.nameservers);
+      if (!nameserversValidation.isValid) {
+        result.error = `Invalid nameservers: ${nameserversValidation.error}`;
+        return result;
+      }
+
+      // 4.5 验证 agree_to_agreements
+      const agreementsValidation = agreementsValidator.validate(jsonData.agree_to_agreements);
+      if (!agreementsValidation.isValid) {
+        result.error = `Invalid agree_to_agreements: ${agreementsValidation.error}`;
+        return result;
+      }
+
+      result.isValid = true;
+      return result;
+    } catch (error) {
+      result.error = `Validation error: ${error.message}`;
       return result;
     }
-
-    // 4. Validate nameservers field
-    const nameserversValidation = nameserversValidator.validate(jsonData.nameservers);
-    if (!nameserversValidation.isValid) {
-      result.error = nameserversValidation.error;
-      return result;
-    }
-
-    // 5. Validate agree_to_agreements field
-    const agreementsValidation = agreementsValidator.validate(jsonData.agree_to_agreements);
-    if (!agreementsValidation.isValid) {
-      result.error = agreementsValidation.error;
-      return result;
-    }
-
-    result.isValid = true;
-    return result;
   }
 
   /**
