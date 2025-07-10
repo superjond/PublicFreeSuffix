@@ -1,12 +1,41 @@
-// GitHub Actions environment configuration
-const config = {
-  // Reserved words configuration
+/**
+ * Configuration module
+ */
+
+module.exports = {
+  github: {
+    repository: process.env.GITHUB_REPOSITORY || 'PublicFreeSuffix/PublicFreeSuffix',
+    templateUrl: 'https://raw.githubusercontent.com/PublicFreeSuffix/PublicFreeSuffix/refs/heads/main/.github/PULL_REQUEST_TEMPLATE/WHOIS_FILE_OPERATION.md',
+    labels: {
+      validationPassed: 'validation-passed',
+      validationFailed: 'validation-failed'
+    }
+  },
+  validation: {
+    maxFileCount: 1,
+    filePathPattern: /^whois\/[^\/]+\.json$/,
+    minDescriptionLength: 1300,
+    titlePattern: /^(Registration|Update|Remove):\s+([a-zA-Z0-9-]+)\.(.+)$/
+  },
+  sld: {
+    // SLD列表文件的本地路径
+    localPath: '../../public_sld_list.json',
+    
+    // 缓存配置
+    cache: {
+      timeout: 24 * 60 * 60 * 1000, // 24 hours
+      filename: 'sld_cache.json'     // 缓存文件名
+    },
+
+    // SLD状态定义
+    status: {
+      live: 'live'  // 可用状态的值
+    }
+  },
   reservedWords: {
-    // Local reserved words file path
     localPath: '../../reserved_words.txt',
-    // Cache timeout: 24 hours (milliseconds)
-    cacheTimeout: 24 * 60 * 60 * 1000,
-    // Local fallback reserved words (used when file read fails)
+    cacheTimeout: 24 * 60 * 60 * 1000, // 24 hours
+    // 保留字列表（当文件读取失败时使用）
     fallbackWords: [
       'api', 'admin', 'administrator', 'root', 'master', 'www', 'ftp', 'mail', 'email',
       'support', 'help', 'blog', 'news', 'about', 'contact', 'legal', 'privacy',
@@ -23,24 +52,18 @@ const config = {
       'beta', 'alpha', 'dev', 'development', 'staging', 'production', 'live'
     ]
   },
-
-  // GitHub configuration
-  github: {
-    token: process.env.GITHUB_TOKEN,
-    repository: process.env.GITHUB_REPOSITORY
-  },
-
-  // PR validation configuration
-  validation: {
-    // Minimum PR description length
-    minDescriptionLength: 1300,
-    // Maximum number of files allowed in a PR
-    maxFileCount: 1,
-    // Required file path pattern
-    filePathPattern: /^whois\/[^\/]+\.json$/,
-    // PR title pattern: Registration/Update/Remove: domain.sld
-    titlePattern: /^(Registration|Update|Remove):\s+([a-zA-Z0-9-]+)\.(.+)$/
+  logging: {
+    levels: {
+      error: 0,
+      warn: 1,
+      info: 2,
+      debug: 3
+    },
+    colors: {
+      error: '\x1b[31m', // red
+      warn: '\x1b[33m',  // yellow
+      info: '\x1b[36m',  // cyan
+      debug: '\x1b[90m'  // gray
+    }
   }
-};
-
-module.exports = config; 
+}; 

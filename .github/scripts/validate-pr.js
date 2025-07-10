@@ -1,17 +1,23 @@
 const fs = require('fs');
 const path = require('path');
-const { Octokit } = require('@octokit/rest');
 const config = require('./config');
 const reservedWordsService = require('./reserved-words');
 const sldService = require('./sld-service');
 const logger = require('./logger');
+const githubService = require('./github-service');
+
+// Import validators
+const nameserversValidator = require('./validators/nameservers');
+const agreementsValidator = require('./validators/agreements');
+const registrantValidator = require('./validators/registrant');
 
 class PRValidator {
   constructor() {
-    this.octokit = new Octokit({
-      auth: process.env.GITHUB_TOKEN
-    });
-    
+    // 检查必要的环境变量
+    if (!process.env.MY_GITHUB_TOKEN) {
+      throw new Error('MY_GITHUB_TOKEN environment variable is required but not set');
+    }
+
     // PR title regex: Registration/Update/Remove: domain-name.sld
     this.titleRegex = /^(Registration|Update|Remove):\s+([a-zA-Z0-9-]+)\.(.+)$/;
     this.errors = [];
@@ -119,7 +125,7 @@ class PRValidator {
       this.logValidationResult(validationResult, prData.number);
       
       // Generate validation report
-      const report = this.generateValidationReport(validationResult, prData.author);
+      const report = await this.generateValidationReport(validationResult, prData.author);
       validationResult.report = report;
 
       // Save results to file
@@ -385,7 +391,7 @@ class PRValidator {
     };
 
     // 1. Validate registrant field
-    const registrantValidation = this.validateRegistrant(jsonData.registrant);
+    const registrantValidation = registrantValidator.validate(jsonData.registrant);
     if (!registrantValidation.isValid) {
       result.error = registrantValidation.error;
       return result;
@@ -406,14 +412,14 @@ class PRValidator {
     }
 
     // 4. Validate nameservers field
-    const nameserversValidation = this.validateNameservers(jsonData.nameservers);
+    const nameserversValidation = nameserversValidator.validate(jsonData.nameservers);
     if (!nameserversValidation.isValid) {
       result.error = nameserversValidation.error;
       return result;
     }
 
     // 5. Validate agree_to_agreements field
-    const agreementsValidation = this.validateAgreements(jsonData.agree_to_agreements);
+    const agreementsValidation = agreementsValidator.validate(jsonData.agree_to_agreements);
     if (!agreementsValidation.isValid) {
       result.error = agreementsValidation.error;
       return result;
@@ -426,26 +432,6 @@ class PRValidator {
   /**
    * Validate registrant field (email format)
    */
-  validateRegistrant(registrant) {
-    const result = { isValid: false, error: null };
-
-    if (!registrant || typeof registrant !== 'string') {
-      result.error = 'registrant field is required and must be a string';
-      return result;
-    }
-
-    // Email format validation regular expression
-    const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
-    
-    if (!emailRegex.test(registrant)) {
-      result.error = `registrant must be a valid email address. Current value: "${registrant}"`;
-      return result;
-    }
-
-    result.isValid = true;
-    return result;
-  }
-
   /**
    * Validate domain field
    */
@@ -561,100 +547,9 @@ class PRValidator {
   /**
    * Validate nameservers field
    */
-  validateNameservers(nameservers) {
-    const result = { isValid: false, error: null };
-
-    if (!nameservers || !Array.isArray(nameservers)) {
-      result.error = 'nameservers field is required and must be an array';
-      return result;
-    }
-
-    // Quantity validation
-    if (nameservers.length < 2) {
-      result.error = `nameservers must have at least 2 entries, currently has ${nameservers.length}`;
-      return result;
-    }
-
-    if (nameservers.length > 6) {
-      result.error = `nameservers allows maximum 6 entries, currently has ${nameservers.length}`;
-      return result;
-    }
-
-    // Duplicate validation
-    const uniqueNameservers = [...new Set(nameservers)];
-    if (uniqueNameservers.length !== nameservers.length) {
-      result.error = 'nameservers contains duplicate domain names';
-      return result;
-    }
-
-    // Domain format validation
-    const domainRegex = /^[a-zA-Z0-9][a-zA-Z0-9.-]*[a-zA-Z0-9]$/;
-    
-    for (let i = 0; i < nameservers.length; i++) {
-      const ns = nameservers[i];
-      
-      if (!ns || typeof ns !== 'string') {
-        result.error = `nameservers[${i}] must be a string`;
-        return result;
-      }
-
-      // Check that it cannot end with a dot
-      if (ns.endsWith('.')) {
-        result.error = `nameservers[${i}] cannot end with a dot. Current value: "${ns}"`;
-        return result;
-      }
-
-      // Validate domain format
-      if (!domainRegex.test(ns)) {
-        result.error = `nameservers[${i}] is not a valid domain format. Current value: "${ns}"`;
-        return result;
-      }
-
-      // Validate that it must contain at least one dot
-      if (!ns.includes('.')) {
-        result.error = `nameservers[${i}] must be a complete domain name (containing dots). Current value: "${ns}"`;
-        return result;
-      }
-    }
-
-    result.isValid = true;
-    return result;
-  }
-
   /**
    * Validate agree_to_agreements field
    */
-  validateAgreements(agreements) {
-    const result = { isValid: false, error: null };
-
-    if (!agreements || typeof agreements !== 'object' || Array.isArray(agreements)) {
-      result.error = 'agree_to_agreements field is required and must be an object';
-      return result;
-    }
-
-    // Required agreement fields
-    const requiredAgreements = [
-      'registration_and_use_agreement',
-      'acceptable_use_policy', 
-      'privacy_policy'
-    ];
-
-    for (const agreement of requiredAgreements) {
-      if (!(agreement in agreements)) {
-        result.error = `agree_to_agreements is missing required field: ${agreement}`;
-        return result;
-      }
-
-      if (agreements[agreement] !== true) {
-        result.error = `agree_to_agreements.${agreement} must be true. Current value: ${agreements[agreement]}`;
-        return result;
-      }
-    }
-
-    result.isValid = true;
-    return result;
-  }
-
   /**
    * Validate title and filename consistency
    */
@@ -698,21 +593,19 @@ class PRValidator {
       // For modified files, get the latest version
       if (file.status === 'modified') {
         const [owner, repo] = config.github.repository.split('/');
-        const response = await this.octokit.rest.repos.getContent({
+        const content = await githubService.getFileContent(
+          file.filename,
+          prData.headSha,
           owner,
-          repo,
-          path: file.filename,
-          ref: prData.headSha
-        });
+          repo
+        );
         
-        if (response.data.content) {
-          return Buffer.from(response.data.content, 'base64').toString('utf8');
-        }
+        return content;
       }
 
       return null;
     } catch (error) {
-      console.error('Failed to get file content:', error);
+      logger.error('Failed to get file content:', error);
       return null;
     }
   }
@@ -769,11 +662,48 @@ class PRValidator {
   /**
    * Generate validation report message (for GitHub comments)
    */
-  generateValidationReport(validationResult, mentionUser = null) {
-    if (validationResult.isValid) {
-      return `## ✅ PR Validation Passed
+  async generateValidationReport(validationResult, mentionUser = null) {
+    const report = validationResult.isValid
+      ? this.generateSuccessReport(validationResult, mentionUser)
+      : this.generateFailureReport(validationResult, mentionUser);
 
-**Validation Results:**
+    try {
+      // Post the report as a PR comment
+      if (process.env.PR_NUMBER) {
+        const [owner, repo] = config.github.repository.split('/');
+        await githubService.createPullRequestComment(
+          process.env.PR_NUMBER,
+          report,
+          owner,
+          repo
+        );
+
+        // Update PR labels based on validation result
+        const labels = validationResult.isValid
+          ? ['validation-passed']
+          : ['validation-failed'];
+        
+        await githubService.updatePullRequestLabels(
+          process.env.PR_NUMBER,
+          labels,
+          owner,
+          repo
+        );
+      }
+    } catch (error) {
+      logger.error('Failed to post validation report:', error);
+    }
+
+    return report;
+  }
+
+  /**
+   * Generate success report
+   */
+  generateSuccessReport(validationResult, mentionUser) {
+    return `## ✅ PR Validation Passed
+
+${mentionUser ? `@${mentionUser} ` : ''}**Validation Results:**
 - ✅ Title format is correct
 - ✅ PR description length meets requirements
 - ✅ File count meets requirements (1 file)
@@ -787,30 +717,34 @@ class PRValidator {
 - **File:** ${validationResult.details.fileName}
 
 This PR meets all requirements and can proceed with review.`;
-    } else {
-      let report = `## ❌ PR Validation Failed
+  }
+
+  /**
+   * Generate failure report
+   */
+  generateFailureReport(validationResult, mentionUser) {
+    let report = `## ❌ PR Validation Failed
 
 ${mentionUser ? `@${mentionUser} ` : ''}**The following issues were found:**
 `;
       
-      validationResult.errors.forEach((error, index) => {
-        report += `${index + 1}. ❌ ${error}\n`;
+    validationResult.errors.forEach((error, index) => {
+      report += `${index + 1}. ❌ ${error}\n`;
+    });
+
+    // Generate targeted help information based on specific errors
+    const helpSections = this.generateTargetedHelp(validationResult.errors);
+    
+    if (helpSections.length > 0) {
+      report += `\n**Solutions:**\n`;
+      helpSections.forEach((section, index) => {
+        report += `\n### ${index + 1}. ${section.title}\n${section.content}\n`;
       });
-
-      // Generate targeted help information based on specific errors
-      const helpSections = this.generateTargetedHelp(validationResult.errors);
-      
-      if (helpSections.length > 0) {
-        report += `\n**Solutions:**\n`;
-        helpSections.forEach((section, index) => {
-          report += `\n### ${index + 1}. ${section.title}\n${section.content}\n`;
-        });
-      }
-
-      report += `\n**Need help?** Please refer to the [PR template](https://raw.githubusercontent.com/PublicFreeSuffix/PublicFreeSuffix/refs/heads/main/.github/PULL_REQUEST_TEMPLATE/WHOIS_FILE_OPERATION.md) or check the project documentation.`;
-
-      return report;
     }
+
+    report += `\n**Need help?** Please refer to the [PR template](${config.github.templateUrl}) or check the project documentation.`;
+
+    return report;
   }
 
   /**
@@ -1008,15 +942,10 @@ whois/mycompany.so.kg.json
    */
   async validateSLDStatus(sld) {
     try {
-      const status = await sldService.getSLDStatus(sld);
+      const isAvailable = await sldService.isSLDAvailable(sld);
       
-      if (!status) {
-        this.errors.push(`Unable to retrieve status information for SLD "${sld}"`);
-        return false;
-      }
-
-      if (status.toLowerCase() !== 'ok') {
-        this.errors.push(`SLD "${sld}" has status "${status}" which is not available. Only SLDs with status "ok" are accepted`);
+      if (!isAvailable) {
+        this.errors.push(`SLD "${sld}" is not available. Only SLDs with status "live" are accepted`);
         return false;
       }
 
