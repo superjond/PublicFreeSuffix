@@ -230,22 +230,20 @@ jobs:
           
           for file in $FILES; do
             if [ -f "$file" ]; then
-              echo "Reading $file from PR branch for delete operation"
-              # Safely display file content without executing it
-              echo "File content (first 10 lines):"
-              head -10 "$file" | sed 's/^/  /'
-              echo "..."
+              echo "Processing $file from PR branch for delete operation"
               # Validate JSON format
               if jq empty "$file" 2>/dev/null; then
                 echo "✅ JSON validation passed for $file"
               else
                 echo "⚠️  JSON validation failed for $file"
+                exit 1
               fi
               # Copy to separate directory
               cp "$file" "/tmp/whois_files/"
               echo "Copied $file to /tmp/whois_files/"
             else
               echo "File $file not found in PR branch"
+              exit 1
             fi
           done
           
@@ -257,22 +255,20 @@ jobs:
           
           for file in $FILES; do
             if [ -f "$file" ]; then
-              echo "Reading $file from merged repository"
-              # Safely display file content without executing it
-              echo "File content (first 10 lines):"
-              head -10 "$file" | sed 's/^/  /'
-              echo "..."
+              echo "Processing $file from merged repository"
               # Validate JSON format
               if jq empty "$file" 2>/dev/null; then
                 echo "✅ JSON validation passed for $file"
               else
                 echo "⚠️  JSON validation failed for $file"
+                exit 1
               fi
               # Copy to separate directory
               cp "$file" "/tmp/whois_files/"
               echo "Copied $file to /tmp/whois_files/"
             else
               echo "File $file not found in merged repository"
+              exit 1
             fi
           done
         fi
@@ -303,15 +299,14 @@ jobs:
           WHOIS_FILE="whois/${{ steps.trigger-info.outputs.whois_file }}"
           if [ -f "$WHOIS_FILE" ]; then
             echo "Using specified WHOIS file: $WHOIS_FILE"
-            # Safely display file content without executing it
-            echo "File content (first 10 lines):"
-            head -10 "$WHOIS_FILE" | sed 's/^/  /'
-            echo "..."
             # Validate JSON format
             if jq empty "$WHOIS_FILE" 2>/dev/null; then
               echo "✅ JSON validation passed for $WHOIS_FILE"
             else
               echo "⚠️  JSON validation failed for $WHOIS_FILE"
+              if [ "${{ steps.trigger-info.outputs.force_sync }}" = "false" ]; then
+                exit 1
+              fi
             fi
             # Copy to separate directory
             cp "$WHOIS_FILE" "/tmp/whois_files/"
@@ -329,15 +324,14 @@ jobs:
             DOMAIN_FILE="whois/${DOMAIN}.json"
             if [ -f "$DOMAIN_FILE" ]; then
               echo "Found WHOIS file for domain $DOMAIN: $DOMAIN_FILE"
-              # Safely display file content without executing it
-              echo "File content (first 10 lines):"
-              head -10 "$DOMAIN_FILE" | sed 's/^/  /'
-              echo "..."
               # Validate JSON format
               if jq empty "$DOMAIN_FILE" 2>/dev/null; then
                 echo "✅ JSON validation passed for $DOMAIN_FILE"
               else
                 echo "⚠️  JSON validation failed for $DOMAIN_FILE"
+                if [ "${{ steps.trigger-info.outputs.force_sync }}" = "false" ]; then
+                  exit 1
+                fi
               fi
               # Copy to separate directory
               cp "$DOMAIN_FILE" "/tmp/whois_files/"
