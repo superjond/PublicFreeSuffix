@@ -13,7 +13,7 @@ const registrantValidator = require('./validators/registrant');
 
 class PRValidator {
   constructor() {
-    // 检查必要的环境变量
+    // Check required environment variables
     if (!process.env.MY_GITHUB_TOKEN) {
       throw new Error('MY_GITHUB_TOKEN environment variable is required but not set');
     }
@@ -50,7 +50,7 @@ class PRValidator {
       const prData = this.getPRDataFromEnv();
       console.log(`Validating PR #${prData.number}: ${prData.title}`);
 
-      // 添加错误检查函数
+      // Add error checking function
       const addError = (error) => {
         if (error) {
           validationResult.errors.push(error);
@@ -95,17 +95,17 @@ class PRValidator {
           addError('File path is incorrect. File must be located in the whois/ directory and be a .json file.');
         }
 
-        // 5. 根据操作类型进行不同的验证
+        // 5. Perform different validations based on operation type
         if (titleValidation.isValid && filePathValidation) {
           if (titleValidation.actionType === 'Remove') {
-            // 对Remove操作进行特殊验证
+            // Special validation for Remove operation
             const removeValidation = await this.validateRemoveOperation(prData.files[0], titleValidation);
             validationResult.details.jsonValid = removeValidation.isValid;
             if (!removeValidation.isValid) {
               addError(removeValidation.error);
             }
           } else {
-            // 对于其他操作类型（Registration/Update）进行常规JSON验证
+            // Regular JSON validation for other operation types (Registration/Update)
             if (['added', 'modified'].includes(prData.files[0].status)) {
               const jsonValidation = await this.validateJsonContent(prData.files[0], prData);
               validationResult.details.jsonValid = jsonValidation.isValid;
@@ -115,7 +115,7 @@ class PRValidator {
             }
           }
 
-          // 验证标题和文件名一致性
+          // Validate title and filename consistency
           const consistencyValidation = this.validateTitleFileConsistency(
             titleValidation, 
             prData.files[0].filename
@@ -142,7 +142,7 @@ class PRValidator {
     } catch (error) {
       console.error('Error occurred during validation:', error);
       validationResult.isValid = false;
-      // 确保错误消息不为空
+      // Ensure error message is not empty
       const errorMessage = error && error.message ? error.message : 'An unknown error occurred during validation';
       addError(`Internal validation error: ${errorMessage}`);
       validationResult.report = `❌ PR Validation Failed\n\nInternal error occurred during validation: ${errorMessage}`;
@@ -230,7 +230,7 @@ class PRValidator {
       return result;
     }
 
-    // 定义需要检查的关键部分
+    // Define key sections to check
     const requiredSections = {
       'Operation Type': {
         regex: /## Operation Type\s*-\s*\[[\sx]]\s*Create,\s*Register a new domain name\.\s*-\s*\[[\sx]]\s*Update,\s*Update NS information or registrant email for an existing domain\.\s*-\s*\[[\sx]]\s*Remove,\s*Cancel my domain name\./m,
@@ -241,12 +241,12 @@ class PRValidator {
         error: 'Domain section is missing or incomplete. Please confirm your domain name.'
       },
       'Confirmation Items': {
-        regex: /## Confirmation Items(\s*-\s*\[[\sx]].+){9,}/m,  // 确保至少有9个确认项
+        regex: /## Confirmation Items(\s*-\s*\[[\sx]].+){9,}/m,  // Ensure at least 9 confirmation items
         error: 'Confirmation Items section is missing or incomplete. All 9 confirmation items must be present.'
       }
     };
 
-    // 检查每个必需部分
+    // Check each required section
     const missingParts = [];
     for (const [section, check] of Object.entries(requiredSections)) {
       if (!check.regex.test(body)) {
@@ -255,16 +255,16 @@ class PRValidator {
       }
     }
 
-    // 提取 Operation Type 部分
+    // Extract Operation Type section
     const operationTypeMatch = body.match(/## Operation Type([\s\S]*?)(?=##|$)/);
     if (operationTypeMatch) {
       const operationTypePart = operationTypeMatch[1];
       
-      // 提取所有复选框
+      // Extract all checkboxes
       const checkboxes = operationTypePart.match(/\[[\sx]]/g) || [];
       const checkedBoxes = checkboxes.filter(box => box === '[x]').length;
       
-      // 检查是否只选中了一个操作类型
+      // Check if only one operation type is selected
       if (checkedBoxes === 0) {
         missingParts.push('Please select one operation type by checking the corresponding checkbox.');
         logger.debug('No operation type selected');
@@ -277,12 +277,12 @@ class PRValidator {
       logger.debug('Operation Type section not found');
     }
 
-    // 检查确认项是否都被选中
+    // Check if all confirmation items are checked
     const confirmationItems = body.match(/\[[\sx]]/g) || [];
     const checkedItems = confirmationItems.filter(item => item === '[x]').length;
     
-    // 注意：现在我们需要根据实际选中的复选框数量来判断
-    // 总数应该是：9个确认项 + 1个域名确认 + 1个操作类型 = 11个
+    // Note: Now we need to judge based on the actual number of checked checkboxes
+    // Total should be: 9 confirmation items + 1 domain confirmation + 1 operation type = 11
     if (checkedItems < 11) {
       missingParts.push(`Please check all confirmation items. Only ${checkedItems} of 11 required items are checked.`);
       logger.debug(`Insufficient checked items: ${checkedItems} of 11`);
@@ -356,37 +356,37 @@ class PRValidator {
   async validateJsonContent(file, prData) {
     const result = { isValid: false, error: null };
     try {
-      // 1. 获取文件内容
+      // 1. Get file content
       const fileContent = await this.getFileContent(file, prData);
       if (!fileContent) {
         result.error = 'Unable to get file content';
         return result;
       }
 
-      // 2. 验证 JSON 格式
+      // 2. Validate JSON format
       try {
         const jsonData = JSON.parse(fileContent);
         
-        // 3. 基本的 null 检查
+        // 3. Basic null check
         if (jsonData === null || jsonData === undefined) {
           result.error = 'JSON file content cannot be null or undefined';
           return result;
         }
 
-        // 4. 验证根级别必须是对象
+        // 4. Validate root level must be an object
         if (typeof jsonData !== 'object' || Array.isArray(jsonData)) {
           result.error = 'JSON file root level must be an object';
           return result;
         }
 
-        // 5. 调用详细字段验证
+        // 5. Call detailed field validation
         const fieldValidation = await this.validateJsonFields(jsonData);
         if (!fieldValidation.isValid) {
           result.error = fieldValidation.error;
           return result;
         }
 
-        // 添加缓存属性以供后续使用
+        // Add cache properties for subsequent use
         result.validatedData = {
           registrant: jsonData.registrant,
           domain: jsonData.domain,
@@ -413,7 +413,7 @@ class PRValidator {
   async validateJsonFields(jsonData) {
     const result = { isValid: false, error: null };
 
-    // 1. 定义必需字段列表
+    // 1. Define required fields list
     const requiredFields = [
       'registrant',
       'domain',
@@ -422,51 +422,51 @@ class PRValidator {
       'agree_to_agreements'
     ];
 
-    // 2. 检查是否缺少必需字段
+    // 2. Check if required fields are missing
     const missingFields = requiredFields.filter(field => !(field in jsonData));
     if (missingFields.length > 0) {
       result.error = `Missing required fields: ${missingFields.join(', ')}`;
       return result;
     }
 
-    // 3. 检查是否有多余字段
+    // 3. Check if there are extra fields
     const extraFields = Object.keys(jsonData).filter(field => !requiredFields.includes(field));
     if (extraFields.length > 0) {
       result.error = `Unexpected fields found: ${extraFields.join(', ')}`;
       return result;
     }
 
-    // 4. 验证各个字段的值
+    // 4. Validate each field value
     try {
-      // 4.1 验证 registrant
+      // 4.1 Validate registrant
       const registrantValidation = registrantValidator.validate(jsonData.registrant);
       if (!registrantValidation.isValid) {
         result.error = `Invalid registrant: ${registrantValidation.error}`;
         return result;
       }
 
-      // 4.2 验证 domain
+      // 4.2 Validate domain
       const domainValidation = await this.validateDomainField(jsonData.domain);
       if (!domainValidation.isValid) {
         result.error = `Invalid domain: ${domainValidation.error}`;
         return result;
       }
 
-      // 4.3 验证 sld
+      // 4.3 Validate sld
       const sldValidation = await this.validateSldField(jsonData.sld);
       if (!sldValidation.isValid) {
         result.error = `Invalid sld: ${sldValidation.error}`;
         return result;
       }
 
-      // 4.4 验证 nameservers
+      // 4.4 Validate nameservers
       const nameserversValidation = nameserversValidator.validate(jsonData.nameservers);
       if (!nameserversValidation.isValid) {
         result.error = `Invalid nameservers: ${nameserversValidation.error}`;
         return result;
       }
 
-      // 4.5 验证 agree_to_agreements
+      // 4.5 Validate agree_to_agreements
       const agreementsValidation = agreementsValidator.validate(jsonData.agree_to_agreements);
       if (!agreementsValidation.isValid) {
         result.error = `Invalid agree_to_agreements: ${agreementsValidation.error}`;
@@ -533,11 +533,11 @@ class PRValidator {
     const result = { isValid: false, error: null };
 
     try {
-      // 获取保留字列表
+      // Get reserved words list
       const reservedWords = await reservedWordsService.getReservedWords();
       const domainLower = domain.toLowerCase();
       
-      // 检查是否与保留字冲突
+      // Check for conflicts with reserved words
       for (const reservedWord of reservedWords) {
         if (domainLower === reservedWord.toLowerCase()) {
           result.error = `Domain "${domain}" conflicts with reserved word "${reservedWord}" and cannot be used. Reserved words are used to protect system functions and avoid confusion.`;
@@ -549,7 +549,7 @@ class PRValidator {
       return result;
 
     } catch (error) {
-      // 如果无法读取保留字列表，则拒绝验证
+      // If unable to read reserved words list, reject validation
       logger.error('Error occurred while checking reserved words:', error);
       result.error = error.message;
       return result;
@@ -885,11 +885,11 @@ Please ensure:
       nameservers: false,
       agreements: false,
       consistency: false,
-      removeOperation: false  // 添加新的错误类型
+      removeOperation: false  // Add new error type
     };
 
     errors.forEach(error => {
-      // 添加对 undefined 错误的检查
+      // Add check for undefined errors
       if (!error) {
         console.warn('Encountered undefined error in categorizeErrors');
         return;
@@ -933,7 +933,7 @@ Please ensure:
       if (errorLower.includes('not match') || errorLower.includes('consistency')) {
         categories.consistency = true;
       }
-      // 添加Remove操作相关的错误检查
+      // Add Remove operation related error checking
       if (errorLower.includes('remove operation') || 
           errorLower.includes('cannot remove file') ||
           (errorLower.includes('file') && errorLower.includes('removed'))) {
@@ -1042,7 +1042,7 @@ Please ensure:
     const result = { isValid: false, error: null };
     
     try {
-      // 1. 验证文件状态是否为 removed
+      // 1. Validate file status is removed
       logger.debug(`Validating remove operation for file: ${file.filename}`);
       logger.debug(`File status: ${file.status}`);
       
@@ -1052,7 +1052,7 @@ Please ensure:
         return result;
       }
       
-      // 2. 验证文件是否存在于主分支
+      // 2. Validate file exists in main branch
       const [owner, repo] = config.github.repository.split('/');
       logger.debug(`Checking if file exists in main branch: ${owner}/${repo}`);
       
@@ -1069,7 +1069,7 @@ Please ensure:
         return result;
       }
       
-      // 3. 验证文件名与标题中的域名是否匹配
+      // 3. Validate filename matches domain in title
       const expectedFilename = `whois/${titleValidation.domainName}.${titleValidation.sld}.json`;
       logger.debug(`Comparing filenames - Expected: ${expectedFilename}, Actual: ${file.filename}`);
       

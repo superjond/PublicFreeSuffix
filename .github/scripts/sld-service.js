@@ -16,14 +16,14 @@ class SLDService {
 
   /**
    * Get supported SLD list
-   * @returns {Promise<string[]>} 返回所有可用的SLD列表
+   * @returns {Promise<string[]>} Returns all available SLD list
    */
   async getSupportedSLDs() {
     try {
       const sldList = await this.getSLDList();
       if (!sldList) return [];
 
-      // 只返回状态为live的SLD
+      // Only return SLDs with status 'live'
       return Object.entries(sldList)
         .filter(([, info]) => info.status === config.sld.status.live)
         .map(([sld]) => sld);
@@ -35,9 +35,9 @@ class SLDService {
   }
 
   /**
-   * 检查SLD是否可用
-   * @param {string} sld - 要检查的SLD
-   * @returns {Promise<boolean>} 如果SLD存在且状态为live则返回true
+   * Check if SLD is available
+   * @param {string} sld - SLD to check
+   * @returns {Promise<boolean>} Returns true if SLD exists and status is 'live'
    */
   async isSLDAvailable(sld) {
     try {
@@ -52,9 +52,9 @@ class SLDService {
   }
 
   /**
-   * 获取SLD信息
-   * @param {string} sld - 要获取信息的SLD
-   * @returns {Promise<Object|null>} SLD信息对象或null
+   * Get SLD information
+   * @param {string} sld - SLD to get information for
+   * @returns {Promise<Object|null>} SLD information object or null
    */
   async getSLDInfo(sld) {
     try {
@@ -67,13 +67,13 @@ class SLDService {
   }
 
   /**
-   * 获取SLD列表（优先使用缓存）
+   * Get SLD list (prioritize cache)
    * @private
-   * @returns {Promise<Object|null>} SLD列表对象或null
+   * @returns {Promise<Object|null>} SLD list object or null
    */
   async getSLDList() {
     try {
-      // 检查缓存是否有效
+      // Check if cache is valid
       if (this.isCacheValid()) {
         logger.debug('Using cached SLD list');
         return this.cachedSLDList;
@@ -81,11 +81,11 @@ class SLDService {
 
       logger.info('Cache expired or not exists, reading SLD list from file');
       
-      // 读取文件
+      // Read file
       const sldList = await this.readSLDList();
       
       if (sldList && Object.keys(sldList).length > 0) {
-        // 更新缓存
+        // Update cache
         this.updateCache(sldList);
         return sldList;
       }
@@ -95,12 +95,12 @@ class SLDService {
 
     } catch (error) {
       logger.error('Error getting SLD list:', error);
-      return this.cachedSLDList; // 发生错误时返回缓存的数据（即使已过期）
+      return this.cachedSLDList; // Return cached data (even if expired) when error occurs
     }
   }
 
   /**
-   * 从文件读取SLD列表
+   * Read SLD list from file
    * @private
    */
   async readSLDList() {
@@ -111,7 +111,7 @@ class SLDService {
       const data = await fs.promises.readFile(filePath, 'utf8');
       const sldList = JSON.parse(data);
       
-      // 验证数据格式
+      // Validate data format
       if (!this.validateSLDList(sldList)) {
         throw new Error('Invalid SLD list format');
       }
@@ -126,7 +126,7 @@ class SLDService {
   }
 
   /**
-   * 验证SLD列表格式
+   * Validate SLD list format
    * @private
    */
   validateSLDList(sldList) {
@@ -134,7 +134,7 @@ class SLDService {
       return false;
     }
 
-    // 检查每个SLD条目
+    // Check each SLD entry
     for (const [sld, info] of Object.entries(sldList)) {
       if (!this.validateSLDEntry(sld, info)) {
         return false;
@@ -145,16 +145,16 @@ class SLDService {
   }
 
   /**
-   * 验证单个SLD条目
+   * Validate single SLD entry
    * @private
    */
   validateSLDEntry(sld, info) {
-    // 基本类型检查
+    // Basic type check
     if (!info || typeof info !== 'object') return false;
     if (!info.status || typeof info.status !== 'string') return false;
     if (!info.operator || typeof info.operator !== 'object') return false;
 
-    // 检查operator字段
+    // Check operator fields
     const operator = info.operator;
     if (!operator.organization || typeof operator.organization !== 'string') return false;
     if (!operator.website || typeof operator.website !== 'string') return false;
@@ -165,7 +165,7 @@ class SLDService {
   }
 
   /**
-   * 检查缓存是否有效
+   * Check if cache is valid
    * @private
    */
   isCacheValid() {
@@ -179,7 +179,7 @@ class SLDService {
   }
 
   /**
-   * 更新缓存
+   * Update cache
    * @private
    */
   updateCache(sldList) {
@@ -201,7 +201,7 @@ class SLDService {
   }
 
   /**
-   * 从缓存加载数据
+   * Load data from cache
    * @private
    */
   loadFromCache() {
@@ -225,7 +225,7 @@ class SLDService {
   }
 }
 
-// 创建单例实例
+// Create singleton instance
 const sldService = new SLDService();
 
 module.exports = sldService; 

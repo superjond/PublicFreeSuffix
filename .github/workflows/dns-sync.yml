@@ -1,0 +1,238 @@
+name: DNS Sync on PR Merge
+
+on:
+  pull_request_target:
+    types: [closed]
+    paths:
+      - 'whois/*.json'
+
+# 全局权限设置
+permissions: write-all
+
+jobs:
+  dns-sync:
+    runs-on: ubuntu-latest
+    name: DNS Synchronization
+    
+    # 只在PR被合并时执行
+    if: github.event.pull_request.merged == true
+    
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+        token: ${{ secrets.MY_GITHUB_TOKEN }}
+
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '20'
+
+    - name: Install dependencies
+      working-directory: .github/scripts
+      run: |
+        # 确保生成 package-lock.json
+        if [ ! -f "package-lock.json" ]; then
+          npm install
+        fi
+        # 使用 ci 进行清洁安装
+        npm ci
+
+    - name: Get PR information
+      id: pr-info
+      uses: actions/github-script@v7
+      with:
+        github-token: ${{ secrets.MY_GITHUB_TOKEN }}
+        script: |
+          try {
+            const prNumber = context.payload.pull_request.number;
+            
+            // 获取PR信息
+            const { data: pullRequest } = await github.rest.pulls.get({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              pull_number: parseInt(prNumber)
+            });
+            
+            // 获取文件变更
+            const { data: files } = await github.rest.pulls.listFiles({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              pull_number: parseInt(prNumber)
+            });
+            
+            // 确保所有输出都有值
+            core.setOutput('pr-title', pullRequest.title || '');
+            core.setOutput('pr-body', pullRequest.body || '');
+            core.setOutput('pr-number', prNumber.toString());
+            core.setOutput('pr-author', pullRequest.user?.login || 'unknown');
+            core.setOutput('files', JSON.stringify(files || []));
+            core.setOutput('head-sha', pullRequest.head?.sha || '');
+            core.setOutput('merge-sha', pullRequest.merge_commit_sha || '');
+            
+          } catch (error) {
+            core.setFailed(`Failed to get PR information: ${error.message}`);
+            // 设置默认值以防止后续步骤出错
+            core.setOutput('pr-title', '');
+            core.setOutput('pr-body', '');
+            core.setOutput('pr-number', '0');
+            core.setOutput('pr-author', 'unknown');
+            core.setOutput('files', '[]');
+            core.setOutput('head-sha', '');
+            core.setOutput('merge-sha', '');
+          }
+
+    - name: Debug PR Info
+      if: always()
+      run: |
+        echo "PR Title: ${{ steps.pr-info.outputs.pr-title }}"
+        echo "PR Number: ${{ steps.pr-info.outputs.pr-number }}"
+        echo "PR Author: ${{ steps.pr-info.outputs.pr-author }}"
+        echo "PR Files: ${{ steps.pr-info.outputs.files }}"
+        echo "Merge SHA: ${{ steps.pr-info.outputs.merge-sha }}"
+
+    # 1. Checkout PR head（合并前，能读到被删除的文件）
+    - name: Checkout PR head (合并前)
+      uses: actions/checkout@v4
+      with:
+        ref: ${{ steps.pr-info.outputs.head-sha }}
+        fetch-depth: 0
+        token: ${{ secrets.MY_GITHUB_TOKEN }}
+
+    # 2. 读取whois文件内容（无论是注册、更新还是删除都能读到）
+    - name: Read whois file content
+      id: read-whois
+      run: |
+        FILES=$(echo '${{ steps.pr-info.outputs.files }}' | jq -r '.[] | select(.filename | startswith("whois/")) | .filename')
+        for file in $FILES; do
+          if [ -f \"$file\" ]; then
+            echo "Reading $file"
+            cat \"$file\"
+          else
+            echo "File $file not found in head branch"
+          fi
+        done
+
+    # 3. 安装依赖、执行同步脚本等（此时whois文件内容已可用）
+    - name: Execute DNS Sync
+      id: dns-sync
+      if: steps.pr-info.outputs.pr-title != ''
+      working-directory: .github/scripts
+      run: node dns-sync.js
+      env:
+        PR_TITLE: ${{ steps.pr-info.outputs.pr-title }}
+        PR_FILES: ${{ steps.pr-info.outputs.files }}
+        PDA_API_URL: ${{ secrets.PDA_API_URL }}
+        PDA_API_KEY: ${{ secrets.PDA_API_KEY }}
+
+    - name: Comment on PR
+      if: always() && steps.pr-info.outputs.pr-title != ''
+      uses: actions/github-script@v7
+      with:
+        github-token: ${{ secrets.MY_GITHUB_TOKEN }}
+        script: |
+          const fs = require('fs');
+          
+          let syncResult;
+          try {
+            console.log('Reading DNS sync result file...');
+            const resultData = fs.readFileSync('.github/scripts/dns-sync-result.json', 'utf8');
+            console.log('DNS sync result file content:', resultData);
+            syncResult = JSON.parse(resultData);
+            console.log('Parsed DNS sync result:', JSON.stringify(syncResult, null, 2));
+          } catch (error) {
+            console.error('Error reading DNS sync result:', error);
+            syncResult = {
+              success: false,
+              error: 'Failed to read DNS sync results',
+              timestamp: new Date().toISOString()
+            };
+          }
+          
+          const prNumber = '${{ steps.pr-info.outputs.pr-number }}';
+          const prTitle = '${{ steps.pr-info.outputs.pr-title }}';
+          
+          // 构建评论内容
+          let commentBody = '';
+          
+          if (syncResult.success) {
+            commentBody = `✅ **DNS同步成功**\n\n`;
+            commentBody += `**操作类型:** ${syncResult.operation}\n`;
+            commentBody += `**域名:** ${syncResult.domain}\n`;
+            if (syncResult.nameservers) {
+              commentBody += `**Nameservers:** ${syncResult.nameservers.join(', ')}\n`;
+            }
+            commentBody += `**消息:** ${syncResult.message}\n`;
+            commentBody += `**时间:** ${new Date(syncResult.timestamp).toLocaleString('zh-CN')}\n`;
+          } else {
+            commentBody = `❌ **DNS同步失败**\n\n`;
+            commentBody += `**错误:** ${syncResult.error}\n`;
+            commentBody += `**时间:** ${new Date(syncResult.timestamp).toLocaleString('zh-CN')}\n`;
+            commentBody += `\n请检查PowerDNS Admin配置和网络连接。`;
+          }
+          
+          // 查找现有的DNS同步评论
+          const { data: comments } = await github.rest.issues.listComments({
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            issue_number: parseInt(prNumber)
+          });
+          
+          const dnsSyncComments = comments.filter(comment => 
+            comment.user.login === 'github-actions[bot]' && 
+            (comment.body.includes('DNS同步成功') || comment.body.includes('DNS同步失败'))
+          );
+          
+          // 删除旧的DNS同步评论
+          for (const comment of dnsSyncComments) {
+            await github.rest.issues.deleteComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              comment_id: comment.id
+            });
+          }
+          
+          // 添加新的评论
+          await github.rest.issues.createComment({
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            issue_number: parseInt(prNumber),
+            body: commentBody
+          });
+
+    - name: Create commit status
+      if: always() && steps.pr-info.outputs.merge-sha != ''
+      uses: actions/github-script@v7
+      with:
+        github-token: ${{ secrets.MY_GITHUB_TOKEN }}
+        script: |
+          const fs = require('fs');
+          
+          let syncResult;
+          try {
+            const resultData = fs.readFileSync('.github/scripts/dns-sync-result.json', 'utf8');
+            syncResult = JSON.parse(resultData);
+          } catch (error) {
+            syncResult = {
+              success: false,
+              error: 'Failed to read DNS sync results'
+            };
+          }
+          
+          const mergeSha = '${{ steps.pr-info.outputs.merge-sha }}';
+          const prTitle = '${{ steps.pr-info.outputs.pr-title }}';
+          
+          const state = syncResult.success ? 'success' : 'failure';
+          const description = syncResult.success 
+            ? `DNS同步成功: ${syncResult.message}`
+            : `DNS同步失败: ${syncResult.error}`;
+          
+          await github.rest.repos.createCommitStatus({
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            sha: mergeSha,
+            state: state,
+            description: description.substring(0, 140),
+            context: 'DNS Sync'
+          }); 

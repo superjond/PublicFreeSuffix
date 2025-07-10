@@ -13,7 +13,7 @@ class GitHubService {
   }
 
   /**
-   * 检查文件是否存在于指定分支
+   * Check if file exists in specified branch
    */
   async checkFileExists(filePath, branch, owner, repo) {
     try {
@@ -33,7 +33,7 @@ class GitHubService {
   }
 
   /**
-   * 获取文件内容
+   * Get file content
    */
   async getFileContent(filePath, ref, owner, repo) {
     try {
@@ -44,9 +44,9 @@ class GitHubService {
         ref
       });
 
-      // 如果是文件
+      // If it's a file
       if (!Array.isArray(response.data)) {
-        // GitHub API 返回的是 base64 编码的内容
+        // GitHub API returns base64 encoded content
         const content = Buffer.from(response.data.content, 'base64').toString();
         return content;
       }
@@ -59,7 +59,7 @@ class GitHubService {
   }
 
   /**
-   * 更新 PR 标签
+   * Update PR labels
    */
   async updatePullRequestLabels(prNumber, labels, owner, repo) {
     try {
@@ -76,7 +76,7 @@ class GitHubService {
   }
 
   /**
-   * 获取 PR 信息
+   * Get PR information
    */
   async getPullRequest(prNumber, owner, repo) {
     try {
@@ -93,7 +93,7 @@ class GitHubService {
   }
 
   /**
-   * 获取 PR 文件列表
+   * Get PR file list
    */
   async getPullRequestFiles(prNumber, owner, repo) {
     try {
@@ -110,7 +110,7 @@ class GitHubService {
   }
 
   /**
-   * 创建 commit 状态
+   * Create commit status
    */
   async createCommitStatus(sha, state, description, context, owner, repo) {
     try {
@@ -119,7 +119,7 @@ class GitHubService {
         repo,
         sha,
         state,
-        description: description.substring(0, 140), // GitHub API 限制描述长度为 140 字符
+        description: description.substring(0, 140), // GitHub API limits description to 140 characters
         context
       });
     } catch (error) {

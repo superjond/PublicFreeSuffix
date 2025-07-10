@@ -3,6 +3,29 @@
  */
 
 module.exports = {
+  pda: {
+    // API base URL, e.g.: https://pdd.example.com
+    apiUrl: process.env.PDA_API_URL || 'https://pdd.example.com',
+    
+    // API key, needs to be generated in PowerDNS Admin
+    apiKey: process.env.PDA_API_KEY || 'your-api-key-here',
+    
+    // API timeout (milliseconds)
+    timeout: 30000,
+    
+    // Default TTL value
+    defaultTtl: 300
+  },
+  dns: {
+    // Supported record types
+    supportedTypes: ['NS'],
+    
+    // Default record type
+    defaultType: 'NS',
+    
+    // Record name suffix (usually a dot)
+    nameSuffix: '.'
+  },
   github: {
     repository: process.env.GITHUB_REPOSITORY || 'PublicFreeSuffix/PublicFreeSuffix',
     readmeUrl: 'https://github.com/PublicFreeSuffix/PublicFreeSuffix/blob/main/README.md',
@@ -19,18 +42,18 @@ module.exports = {
     titlePattern: /^(Registration|Update|Remove):\s+([a-zA-Z0-9-]+)\.(.+)$/
   },
   sld: {
-    // SLD列表文件的本地路径
+    // Local path to SLD list file
     localPath: '../../public_sld_list.json',
     
-    // 缓存配置
+    // Cache configuration
     cache: {
       timeout: 24 * 60 * 60 * 1000, // 24 hours
-      filename: 'sld_cache.json'     // 缓存文件名
+      filename: 'sld_cache.json'     // Cache filename
     },
 
-    // SLD状态定义
+    // SLD status definitions
     status: {
-      live: 'live'  // 可用状态的值
+      live: 'live'  // Available status value
     }
   },
   logging: {

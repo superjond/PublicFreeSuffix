@@ -8,9 +8,9 @@ class ReservedWordsService {
   }
 
   /**
-   * 获取保留字列表
-   * @returns {Promise<string[]>} 保留字数组
-   * @throws {Error} 如果文件读取失败
+   * Get reserved words list
+   * @returns {Promise<string[]>} Reserved words array
+   * @throws {Error} If file reading fails
    */
   async getReservedWords() {
     try {
@@ -20,7 +20,7 @@ class ReservedWordsService {
       const words = content
         .split('\n')
         .map(line => line.trim())
-        .filter(line => line && !line.startsWith('#')); // 忽略空行和注释
+        .filter(line => line && !line.startsWith('#')); // Ignore empty lines and comments
 
       if (!words.length) {
         throw new Error('Reserved words list is empty');
@@ -36,7 +36,7 @@ class ReservedWordsService {
   }
 }
 
-// 创建单例实例
+// Create singleton instance
 const reservedWordsService = new ReservedWordsService();
 
 module.exports = reservedWordsService; 
