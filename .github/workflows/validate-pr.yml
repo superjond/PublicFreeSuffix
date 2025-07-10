@@ -1,4 +1,4 @@
-name: PR Validation
+name: validate-pr
 
 on:
   # 自动触发
@@ -51,25 +51,6 @@ jobs:
         mkdir -p pr/.github/scripts
         cp -r base/.github/scripts/* pr/.github/scripts/
         rm -rf base
-
-    - name: Create check run
-      uses: actions/github-script@v7
-      id: create-check
-      with:
-        github-token: ${{ secrets.MY_GITHUB_TOKEN }}
-        script: |
-          const { data: check } = await github.rest.checks.create({
-            owner: context.repo.owner,
-            repo: context.repo.repo,
-            name: 'validate-pr',
-            head_sha: '${{ github.event.pull_request.head.sha }}',
-            status: 'in_progress',
-            output: {
-              title: 'PR Validation In Progress',
-              summary: 'Validating pull request...'
-            }
-          });
-          return check.id;
 
     - name: Setup Node.js
       uses: actions/setup-node@v4
@@ -163,6 +144,7 @@ jobs:
         echo "PR Repository: ${{ steps.pr-info.outputs.pr-repo }}"
 
     - name: Validate Pull Request
+      id: validate
       if: steps.pr-info.outputs.pr-title != ''
       working-directory: pr/.github/scripts
       run: node validate-pr.js
@@ -198,7 +180,7 @@ jobs:
           
           const prNumber = '${{ steps.pr-info.outputs.pr-number }}';
           
-          // Find existing validation comment
+          // Find existing validation comments
           const { data: comments } = await github.rest.issues.listComments({
             owner: context.repo.owner,
             repo: context.repo.repo,
@@ -249,43 +231,7 @@ jobs:
             });
           }
 
-    - name: Set PR status
-      if: always() && steps.pr-info.outputs.pr-title != ''
-      uses: actions/github-script@v7
-      with:
-        github-token: ${{ secrets.MY_GITHUB_TOKEN }}
-        script: |
-          const fs = require('fs');
-          
-          let validationResult;
-          try {
-            const resultData = fs.readFileSync('pr/.github/scripts/validation-result.json', 'utf8');
-            validationResult = JSON.parse(resultData);
-          } catch (error) {
-            validationResult = { isValid: false };
-          }
-
-          // 使用之前创建的检查运行ID
-          const checkRunId = steps.create-check.outputs.result;
-          
-          // 更新检查运行的状态
-          await github.rest.checks.update({
-            owner: context.repo.owner,
-            repo: context.repo.repo,
-            check_run_id: checkRunId,
-            name: 'validate-pr',
-            status: 'completed',
-            conclusion: validationResult.isValid ? 'success' : 'failure',
-            output: {
-              title: validationResult.isValid ? 'PR Validation Passed' : 'PR Validation Failed',
-              summary: validationResult.isValid ? 
-                'All PR validation checks passed successfully.' : 
-                `Validation failed with ${validationResult.errors?.length || 0} error(s)`,
-              text: validationResult.report || 'No detailed report available'
-            }
-          });
-
-    - name: Fail if validation failed
+    - name: Check validation result
       if: always() && steps.pr-info.outputs.pr-title != ''
       run: |
         if [ -f pr/.github/scripts/validation-result.json ]; then
