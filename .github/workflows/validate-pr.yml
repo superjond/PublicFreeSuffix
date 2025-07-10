@@ -231,41 +231,38 @@ jobs:
             });
           }
 
-    - name: Update check status
+    - name: Update validation status
       if: always() && steps.pr-info.outputs.pr-title != ''
       uses: actions/github-script@v7
       with:
         github-token: ${{ secrets.MY_GITHUB_TOKEN }}
         script: |
           const fs = require('fs');
-          let conclusion = 'failure';
-          let summary = 'Validation failed';
+          let state = 'error';
+          let description = 'Validation failed';
           
           try {
             const resultData = fs.readFileSync('pr/.github/scripts/validation-result.json', 'utf8');
             const validationResult = JSON.parse(resultData);
             
             if (validationResult.isValid) {
-              conclusion = 'success';
-              summary = 'All validation checks passed';
+              state = 'success';
+              description = 'All validation checks passed';
             } else {
-              summary = 'Validation failed: ' + validationResult.errors.join(', ');
+              description = 'Validation failed: ' + validationResult.errors.slice(0, 100).join(', ');
             }
           } catch (error) {
-            summary = 'Failed to read validation results: ' + error.message;
+            description = 'Failed to read validation results';
           }
           
-          await github.rest.checks.create({
+          // 使用 status API 而不是 checks API
+          await github.rest.repos.createCommitStatus({
             owner: context.repo.owner,
             repo: context.repo.repo,
-            name: 'validate-pr',
-            head_sha: '${{ steps.pr-info.outputs.head-sha }}',
-            status: 'completed',
-            conclusion: conclusion,
-            output: {
-              title: 'PR Validation',
-              summary: summary
-            }
+            sha: '${{ steps.pr-info.outputs.head-sha }}',
+            state: state,
+            description: description.substring(0, 140), // GitHub 状态描述限制为 140 字符
+            context: 'validate-pr'
           });
 
     - name: Check validation result
