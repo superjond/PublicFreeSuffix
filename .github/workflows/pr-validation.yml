@@ -52,6 +52,25 @@ jobs:
         cp -r base/.github/scripts/* pr/.github/scripts/
         rm -rf base
 
+    - name: Create check run
+      uses: actions/github-script@v7
+      id: create-check
+      with:
+        github-token: ${{ secrets.MY_GITHUB_TOKEN }}
+        script: |
+          const { data: check } = await github.rest.checks.create({
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            name: 'validate-pr',
+            head_sha: '${{ github.event.pull_request.head.sha }}',
+            status: 'in_progress',
+            output: {
+              title: 'PR Validation In Progress',
+              summary: 'Validating pull request...'
+            }
+          });
+          return check.id;
+
     - name: Setup Node.js
       uses: actions/setup-node@v4
       with:
@@ -245,18 +264,25 @@ jobs:
           } catch (error) {
             validationResult = { isValid: false };
           }
+
+          // 使用之前创建的检查运行ID
+          const checkRunId = steps.create-check.outputs.result;
           
-          // Set commit status
-          await github.rest.repos.createCommitStatus({
+          // 更新检查运行的状态
+          await github.rest.checks.update({
             owner: context.repo.owner,
             repo: context.repo.repo,
-            sha: '${{ steps.pr-info.outputs.head-sha }}',
-            state: validationResult.isValid ? 'success' : 'failure',
-            target_url: `https://github.com/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`,
-            description: validationResult.isValid ? 
-              'All PR validation checks passed' : 
-              `Validation failed: ${validationResult.errors?.length || 0} error(s)`,
-            context: 'PR Validation'
+            check_run_id: checkRunId,
+            name: 'validate-pr',
+            status: 'completed',
+            conclusion: validationResult.isValid ? 'success' : 'failure',
+            output: {
+              title: validationResult.isValid ? 'PR Validation Passed' : 'PR Validation Failed',
+              summary: validationResult.isValid ? 
+                'All PR validation checks passed successfully.' : 
+                `Validation failed with ${validationResult.errors?.length || 0} error(s)`,
+              text: validationResult.report || 'No detailed report available'
+            }
           });
 
     - name: Fail if validation failed
