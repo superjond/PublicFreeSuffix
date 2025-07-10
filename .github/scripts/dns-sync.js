@@ -9,6 +9,55 @@ class DNSSyncHandler {
   }
 
   /**
+   * Parse domain from filename or full domain string
+   * Supports domains with hyphens and punycode format
+   * @param {string} domainString - Full domain string (e.g., "new-dns-example.no.kg")
+   * @returns {Object} - { domain: string, sld: string }
+   */
+  static parseDomain(domainString) {
+    if (!domainString || typeof domainString !== 'string') {
+      throw new Error('Domain string is required and must be a string');
+    }
+
+    // Remove file path and extension if present
+    let cleanDomain = domainString
+      .replace(/^whois\//, '')  // Remove whois/ prefix
+      .replace(/\.json$/, '');  // Remove .json extension
+
+    logger.info(`Parsing domain from: ${domainString} -> ${cleanDomain}`);
+
+    // Split by dots and handle multi-level SLDs
+    const parts = cleanDomain.split('.');
+    
+    if (parts.length < 2) {
+      throw new Error(`Invalid domain format: ${domainString}. Expected format: domain.sld`);
+    }
+
+    // For domains like "new-dns-example.no.kg", we need to handle multi-level SLDs
+    // The last part is always the TLD, and everything before the last dot is the SLD
+    // The domain name is everything before the SLD
+    
+    if (parts.length === 2) {
+      // Simple case: domain.sld (e.g., "example.no.kg")
+      return {
+        domain: parts[0],
+        sld: parts[1]
+      };
+    } else if (parts.length === 3) {
+      // Multi-level SLD case: domain.sld.tld (e.g., "new-dns-example.no.kg")
+      return {
+        domain: parts[0],
+        sld: `${parts[1]}.${parts[2]}`
+      };
+    } else {
+      // Handle more complex cases (though unlikely for this use case)
+      const domain = parts[0];
+      const sld = parts.slice(1).join('.');
+      return { domain, sld };
+    }
+  }
+
+  /**
    * Main handler function
    */
   async handleSync() {
@@ -125,14 +174,13 @@ class DNSSyncHandler {
     // If still no WHOIS data, create basic data based on domain
     if (!whoisData && domain) {
       logger.info(`Creating basic WHOIS data for domain: ${domain}`);
-      const domainParts = domain.split('.');
-      if (domainParts.length !== 2) {
-        throw new Error(`Invalid domain format: ${domain}`);
-      }
+      
+      // Parse domain using the new robust parser
+      const { domain: domainName, sld } = DNSSyncHandler.parseDomain(domain);
       
       whoisData = {
-        domain: domainParts[0],
-        sld: domainParts[1],
+        domain: domainName,
+        sld: sld,
         operation: operation
       };
     }
@@ -206,16 +254,11 @@ class DNSSyncHandler {
     // Handle different file statuses
     if (whoisFile.status === 'removed') {
       // For deletion, we need to extract domain info from the filename
-      const domain = whoisFile.filename.replace('whois/', '').replace('.json', '');
-      logger.info(`Processing deletion for domain: ${domain}`);
+      logger.info(`Processing deletion for file: ${whoisFile.filename}`);
       
-      // Parse domain to get domain name and sld
-      const domainParts = domain.split('.');
-      if (domainParts.length !== 2) {
-        throw new Error(`Invalid domain format in filename: ${domain}`);
-      }
-      
-      const [domainName, sld] = domainParts;
+      // Parse domain to get domain name and sld using the new robust parser
+      const { domain: domainName, sld } = DNSSyncHandler.parseDomain(whoisFile.filename);
+      logger.info(`Parsed domain: ${domainName}, SLD: ${sld}`);
       
       // Try to read the extracted file content for additional validation
       let whoisData = null;
