@@ -136,32 +136,13 @@ jobs:
             core.setOutput('merge-sha', '');
           }
 
-    # Debug information
+    # Debug information (minimal)
     - name: Debug trigger information
       if: always()
       run: |
-        echo "=== Trigger Information ==="
-        echo "Trigger Type: ${{ steps.trigger-info.outputs.trigger_type }}"
-        echo "Triggered By: ${{ steps.trigger-info.outputs.triggered_by }}"
-        echo "Trigger Time: ${{ steps.trigger-info.outputs.trigger_time }}"
-        echo "Domain: ${{ steps.trigger-info.outputs.domain }}"
-        echo "Operation: ${{ steps.trigger-info.outputs.operation }}"
-        echo "WHOIS File: ${{ steps.trigger-info.outputs.whois_file }}"
-        echo "Force Sync: ${{ steps.trigger-info.outputs.force_sync }}"
-        
+        echo "Trigger: ${{ steps.trigger-info.outputs.trigger_type }} by ${{ steps.trigger-info.outputs.triggered_by }}"
         if [ "${{ steps.trigger-info.outputs.trigger_type }}" = "pr_merge" ]; then
-          echo "=== PR Information ==="
-          echo "PR Title: ${{ steps.pr-info.outputs.pr-title }}"
-          echo "PR Number: ${{ steps.pr-info.outputs.pr-number }}"
-          echo "PR Author: ${{ steps.pr-info.outputs.pr-author }}"
-          echo "PR Files: ${{ steps.pr-info.outputs.files }}"
-          echo "Merge SHA: ${{ steps.pr-info.outputs.merge-sha }}"
-          echo "WHOIS File Path: ${{ steps.handle-whois-pr.outputs.whois_file_path }}"
-          echo "Operation: ${{ steps.handle-whois-pr.outputs.operation }}"
-        else
-          echo "=== Manual Trigger Information ==="
-          echo "WHOIS File Path: ${{ steps.handle-whois-manual.outputs.whois_file_path }}"
-          echo "Operation: ${{ steps.handle-whois-manual.outputs.operation }}"
+          echo "PR: #${{ steps.pr-info.outputs.pr-number }} - ${{ steps.pr-info.outputs.pr-title }}"
         fi
 
     # Handle WHOIS files for PR trigger
@@ -177,72 +158,57 @@ jobs:
         
         # Get file changes from PR
         FILES=$(echo '${{ steps.pr-info.outputs.files }}' | jq -r '.[] | select(.filename | startswith("whois/")) | .filename')
-        echo "Found whois files in PR: $FILES"
-        
-        # Validate file paths for security
-        for file in $FILES; do
-          if [[ "$file" != whois/*.json ]]; then
-            echo "⚠️  Warning: Unexpected file path format: $file"
-          fi
-        done
+        echo "Processing WHOIS files: $FILES"
         
         # Determine operation type from PR title and body
         PR_TITLE="${{ steps.pr-info.outputs.pr-title }}"
+        # Safely handle PR body to prevent shell execution issues
         PR_BODY="${{ steps.pr-info.outputs.pr-body }}"
+        # Create a safe version of PR body for pattern matching (limit length and escape special chars)
+        if [ -n "$PR_BODY" ]; then
+          PR_BODY_SAFE=$(printf '%s' "$PR_BODY" | tr -d '\r' | head -c 500 | sed 's/[[:space:]]*$//')
+        else
+          PR_BODY_SAFE=""
+        fi
         
         # Default to 'auto' operation
         OPERATION="auto"
         
-        # Check for Registration/Update/Remove format (case insensitive)
-        echo "Checking PR title for Registration/Update/Remove format..."
-        if [[ "$PR_TITLE" =~ [Rr]egistration ]] || [[ "$PR_BODY" =~ [Rr]egistration ]]; then
+        # Determine operation type from PR title and body
+        if [[ "$PR_TITLE" =~ [Rr]egistration ]] || [[ "$PR_BODY_SAFE" =~ [Rr]egistration ]]; then
           OPERATION="add"
-          echo "Found 'Registration' in PR title/body, setting operation to 'add'"
-        elif [[ "$PR_TITLE" =~ [Uu]pdate ]] || [[ "$PR_BODY" =~ [Uu]pdate ]]; then
+        elif [[ "$PR_TITLE" =~ [Uu]pdate ]] || [[ "$PR_BODY_SAFE" =~ [Uu]pdate ]]; then
           OPERATION="update"
-          echo "Found 'Update' in PR title/body, setting operation to 'update'"
-        elif [[ "$PR_TITLE" =~ [Rr]emove ]] || [[ "$PR_BODY" =~ [Rr]emove ]]; then
+        elif [[ "$PR_TITLE" =~ [Rr]emove ]] || [[ "$PR_BODY_SAFE" =~ [Rr]emove ]]; then
           OPERATION="delete"
-          echo "Found 'Remove' in PR title/body, setting operation to 'delete'"
-        # Fallback to old format detection
-        elif [[ "$PR_TITLE" == *"delete"* ]] || [[ "$PR_BODY" == *"delete"* ]]; then
+        elif [[ "$PR_TITLE" == *"delete"* ]] || [[ "$PR_BODY_SAFE" == *"delete"* ]]; then
           OPERATION="delete"
-          echo "Found 'delete' in PR title/body (fallback), setting operation to 'delete'"
-        elif [[ "$PR_TITLE" == *"add"* ]] || [[ "$PR_BODY" == *"add"* ]]; then
+        elif [[ "$PR_TITLE" == *"add"* ]] || [[ "$PR_BODY_SAFE" == *"add"* ]]; then
           OPERATION="add"
-          echo "Found 'add' in PR title/body (fallback), setting operation to 'add'"
-        elif [[ "$PR_TITLE" == *"update"* ]] || [[ "$PR_BODY" == *"update"* ]]; then
+        elif [[ "$PR_TITLE" == *"update"* ]] || [[ "$PR_BODY_SAFE" == *"update"* ]]; then
           OPERATION="update"
-          echo "Found 'update' in PR title/body (fallback), setting operation to 'update'"
         else
-          echo "No operation type detected, keeping default 'auto'"
+          OPERATION="auto"
         fi
         
-        echo "Detected operation: $OPERATION"
-        echo "PR Title: '$PR_TITLE'"
-        echo "PR Body: '$PR_BODY'"
+        echo "Operation: $OPERATION"
         
         if [ "$OPERATION" = "delete" ]; then
           # For delete operations, get files from PR branch
-          echo "=== Delete Operation: Getting files from PR branch ==="
           git fetch origin ${{ steps.pr-info.outputs.head-sha }}:pr-head
           git checkout pr-head
           
           for file in $FILES; do
             if [ -f "$file" ]; then
-              echo "Processing $file from PR branch for delete operation"
               # Validate JSON format
-              if jq empty "$file" 2>/dev/null; then
-                echo "✅ JSON validation passed for $file"
-              else
-                echo "⚠️  JSON validation failed for $file"
+              if ! jq empty "$file" 2>/dev/null; then
+                echo "❌ JSON validation failed for $file"
                 exit 1
               fi
               # Copy to separate directory
               cp "$file" "/tmp/whois_files/"
-              echo "Copied $file to /tmp/whois_files/"
             else
-              echo "File $file not found in PR branch"
+              echo "❌ File $file not found in PR branch"
               exit 1
             fi
           done
@@ -251,31 +217,21 @@ jobs:
           git checkout ${{ github.sha }}
         else
           # For add/update operations, use merged repository state
-          echo "=== Add/Update Operation: Using merged repository state ==="
-          
           for file in $FILES; do
             if [ -f "$file" ]; then
-              echo "Processing $file from merged repository"
               # Validate JSON format
-              if jq empty "$file" 2>/dev/null; then
-                echo "✅ JSON validation passed for $file"
-              else
-                echo "⚠️  JSON validation failed for $file"
+              if ! jq empty "$file" 2>/dev/null; then
+                echo "❌ JSON validation failed for $file"
                 exit 1
               fi
               # Copy to separate directory
               cp "$file" "/tmp/whois_files/"
-              echo "Copied $file to /tmp/whois_files/"
             else
-              echo "File $file not found in merged repository"
+              echo "❌ File $file not found in merged repository"
               exit 1
             fi
           done
         fi
-        
-        # List files in separate directory
-        echo "=== WHOIS files in separate directory ==="
-        ls -la /tmp/whois_files/ || echo "No files found"
         
         # Set output for script
         echo "whois_file_path=/tmp/whois_files" >> $GITHUB_OUTPUT
@@ -289,8 +245,6 @@ jobs:
         # Set safe shell options
         set -euo pipefail
         
-        echo "=== Manual Trigger WHOIS File Handling ==="
-        
         # Create separate directory for WHOIS files
         mkdir -p /tmp/whois_files
         
@@ -298,19 +252,15 @@ jobs:
         if [ -n "${{ steps.trigger-info.outputs.whois_file }}" ]; then
           WHOIS_FILE="whois/${{ steps.trigger-info.outputs.whois_file }}"
           if [ -f "$WHOIS_FILE" ]; then
-            echo "Using specified WHOIS file: $WHOIS_FILE"
             # Validate JSON format
-            if jq empty "$WHOIS_FILE" 2>/dev/null; then
-              echo "✅ JSON validation passed for $WHOIS_FILE"
-            else
-              echo "⚠️  JSON validation failed for $WHOIS_FILE"
+            if ! jq empty "$WHOIS_FILE" 2>/dev/null; then
+              echo "❌ JSON validation failed for $WHOIS_FILE"
               if [ "${{ steps.trigger-info.outputs.force_sync }}" = "false" ]; then
                 exit 1
               fi
             fi
             # Copy to separate directory
             cp "$WHOIS_FILE" "/tmp/whois_files/"
-            echo "Copied $WHOIS_FILE to /tmp/whois_files/"
           else
             echo "❌ Specified WHOIS file not found: $WHOIS_FILE"
             if [ "${{ steps.trigger-info.outputs.force_sync }}" = "false" ]; then
@@ -323,34 +273,20 @@ jobs:
             DOMAIN="${{ steps.trigger-info.outputs.domain }}"
             DOMAIN_FILE="whois/${DOMAIN}.json"
             if [ -f "$DOMAIN_FILE" ]; then
-              echo "Found WHOIS file for domain $DOMAIN: $DOMAIN_FILE"
               # Validate JSON format
-              if jq empty "$DOMAIN_FILE" 2>/dev/null; then
-                echo "✅ JSON validation passed for $DOMAIN_FILE"
-              else
-                echo "⚠️  JSON validation failed for $DOMAIN_FILE"
+              if ! jq empty "$DOMAIN_FILE" 2>/dev/null; then
+                echo "❌ JSON validation failed for $DOMAIN_FILE"
                 if [ "${{ steps.trigger-info.outputs.force_sync }}" = "false" ]; then
                   exit 1
                 fi
               fi
               # Copy to separate directory
               cp "$DOMAIN_FILE" "/tmp/whois_files/"
-              echo "Copied $DOMAIN_FILE to /tmp/whois_files/"
             else
               echo "⚠️  No WHOIS file found for domain: $DOMAIN"
-              echo "Available files:"
-              ls -la whois/*.json 2>/dev/null || echo "No JSON files found"
             fi
-          else
-            # List all WHOIS files for selection
-            echo "Available WHOIS files:"
-            find whois/ -name "*.json" -type f 2>/dev/null | head -10 || echo "No JSON files found"
           fi
         fi
-        
-        # List files in separate directory
-        echo "=== WHOIS files in separate directory ==="
-        ls -la /tmp/whois_files/ || echo "No files found"
         
         # Set output for script
         echo "whois_file_path=/tmp/whois_files" >> $GITHUB_OUTPUT
@@ -369,10 +305,6 @@ jobs:
         export WHOIS_FILE_PATH="${{ steps.handle-whois-pr.outputs.whois_file_path || steps.handle-whois-manual.outputs.whois_file_path }}"
         export OPERATION="${{ steps.handle-whois-pr.outputs.operation || steps.handle-whois-manual.outputs.operation }}"
         
-        echo "=== WHOIS File Path ==="
-        echo "WHOIS_FILE_PATH: $WHOIS_FILE_PATH"
-        echo "OPERATION: $OPERATION"
-        
         # Set different parameters based on trigger type
         if [ "${{ steps.trigger-info.outputs.trigger_type }}" = "manual" ]; then
           export PR_TITLE="Manual DNS Sync - ${{ steps.trigger-info.outputs.triggered_by }}"
@@ -381,12 +313,6 @@ jobs:
           export MANUAL_OPERATION="${{ steps.trigger-info.outputs.operation }}"
           export MANUAL_WHOIS_FILE="${{ steps.trigger-info.outputs.whois_file }}"
           export FORCE_SYNC="${{ steps.trigger-info.outputs.force_sync }}"
-          
-          echo "=== Manual Trigger Parameters ==="
-          echo "Domain: $MANUAL_DOMAIN"
-          echo "Operation: $MANUAL_OPERATION"
-          echo "WHOIS File: $MANUAL_WHOIS_FILE"
-          echo "Force Sync: $FORCE_SYNC"
         else
           export PR_TITLE="${{ steps.pr-info.outputs.pr-title }}"
           export PR_FILES="${{ steps.pr-info.outputs.files }}"
@@ -404,37 +330,22 @@ jobs:
       id: run-summary
       if: always()
       run: |
-        echo "=== DNS Sync Run Summary ===" > summary.md
-        echo "" >> summary.md
-        echo "**Trigger Type:** ${{ steps.trigger-info.outputs.trigger_type }}" >> summary.md
-        echo "**Triggered By:** ${{ steps.trigger-info.outputs.triggered_by }}" >> summary.md
-        echo "**Trigger Time:** ${{ steps.trigger-info.outputs.trigger_time }}" >> summary.md
-        echo "" >> summary.md
+        echo "DNS Sync Summary" > summary.md
+        echo "Trigger: ${{ steps.trigger-info.outputs.trigger_type }} by ${{ steps.trigger-info.outputs.triggered_by }}" >> summary.md
         
         if [ "${{ steps.trigger-info.outputs.trigger_type }}" = "manual" ]; then
-          echo "**Manual Parameters:**" >> summary.md
-          echo "- Domain: ${{ steps.trigger-info.outputs.domain }}" >> summary.md
-          echo "- Operation: ${{ steps.trigger-info.outputs.operation }}" >> summary.md
-          echo "- WHOIS File: ${{ steps.trigger-info.outputs.whois_file }}" >> summary.md
-          echo "- Force Sync: ${{ steps.trigger-info.outputs.force_sync }}" >> summary.md
-          echo "- WHOIS File Path: ${{ steps.handle-whois-manual.outputs.whois_file_path }}" >> summary.md
+          echo "Domain: ${{ steps.trigger-info.outputs.domain }}" >> summary.md
+          echo "Operation: ${{ steps.trigger-info.outputs.operation }}" >> summary.md
         else
-          echo "**PR Information:**" >> summary.md
-          echo "- PR Title: ${{ steps.pr-info.outputs.pr-title }}" >> summary.md
-          echo "- PR Number: ${{ steps.pr-info.outputs.pr-number }}" >> summary.md
-          echo "- PR Author: ${{ steps.pr-info.outputs.pr-author }}" >> summary.md
-          echo "- WHOIS File Path: ${{ steps.handle-whois-pr.outputs.whois_file_path }}" >> summary.md
-          echo "- Operation: ${{ steps.handle-whois-pr.outputs.operation }}" >> summary.md
+          echo "PR: #${{ steps.pr-info.outputs.pr-number }} - ${{ steps.pr-info.outputs.pr-title }}" >> summary.md
+          echo "Operation: ${{ steps.handle-whois-pr.outputs.operation }}" >> summary.md
         fi
-        
-        echo "" >> summary.md
         
         # Read DNS sync result
         if [ -f ".github/scripts/dns-sync-result.json" ]; then
-          echo "**DNS Sync Result:**" >> summary.md
+          echo "" >> summary.md
+          echo "Result:" >> summary.md
           cat .github/scripts/dns-sync-result.json | jq -r '. | to_entries | .[] | "- " + .key + ": " + (.value | tostring)' >> summary.md
-        else
-          echo "**DNS Sync Result:** No result file found" >> summary.md
         fi
 
     # Comment on PR (only for PR trigger)
@@ -448,11 +359,8 @@ jobs:
           
           let syncResult;
           try {
-            console.log('Reading DNS sync result file...');
             const resultData = fs.readFileSync('.github/scripts/dns-sync-result.json', 'utf8');
-            console.log('DNS sync result file content:', resultData);
             syncResult = JSON.parse(resultData);
-            console.log('Parsed DNS sync result:', JSON.stringify(syncResult, null, 2));
           } catch (error) {
             console.error('Error reading DNS sync result:', error);
             syncResult = {
