@@ -255,18 +255,37 @@ class PRValidator {
       }
     }
 
-    // 检查是否至少有一个 Operation Type 被选中
-    const operationTypeChecked = /## Operation Type[^[]*\[[x]]/mi.test(body);
-    if (!operationTypeChecked) {
-      missingParts.push('Please select one operation type by checking the corresponding checkbox.');
+    // 提取 Operation Type 部分
+    const operationTypeMatch = body.match(/## Operation Type([\s\S]*?)(?=##|$)/);
+    if (operationTypeMatch) {
+      const operationTypePart = operationTypeMatch[1];
+      
+      // 提取所有复选框
+      const checkboxes = operationTypePart.match(/\[[\sx]]/g) || [];
+      const checkedBoxes = checkboxes.filter(box => box === '[x]').length;
+      
+      // 检查是否只选中了一个操作类型
+      if (checkedBoxes === 0) {
+        missingParts.push('Please select one operation type by checking the corresponding checkbox.');
+        logger.debug('No operation type selected');
+      } else if (checkedBoxes > 1) {
+        missingParts.push('Please select only one operation type. Multiple operation types are selected.');
+        logger.debug(`Multiple operation types selected: ${checkedBoxes}`);
+      }
+    } else {
+      missingParts.push('Operation Type section is missing or malformed.');
+      logger.debug('Operation Type section not found');
     }
 
     // 检查确认项是否都被选中
     const confirmationItems = body.match(/\[[\sx]]/g) || [];
     const checkedItems = confirmationItems.filter(item => item === '[x]').length;
-    if (checkedItems < 11) { // 1个操作类型 + 1个域名确认 + 9个确认项
+    
+    // 注意：现在我们需要根据实际选中的复选框数量来判断
+    // 总数应该是：9个确认项 + 1个域名确认 + 1个操作类型 = 11个
+    if (checkedItems < 11) {
       missingParts.push(`Please check all confirmation items. Only ${checkedItems} of 11 required items are checked.`);
-      console.log(`PR description validation failed: only ${checkedItems} of 11 required checkboxes are checked`);
+      logger.debug(`Insufficient checked items: ${checkedItems} of 11`);
     }
 
     if (missingParts.length > 0) {
@@ -274,7 +293,7 @@ class PRValidator {
       return result;
     }
 
-    console.log('PR description validation passed: all required sections and checkboxes are present');
+    logger.info('PR description validation passed: all required sections and checkboxes are present');
     result.isValid = true;
     return result;
   }
