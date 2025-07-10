@@ -1,38 +1,9 @@
-/**
- * Simple logger module for PR validation
- */
-class Logger {
-  constructor() {
-    this.logs = [];
-  }
+const logger = {
+  log: (...args) => console.log(...args),
+  error: (...args) => console.error(...args),
+  warn: (...args) => console.warn(...args),
+  info: (...args) => console.info(...args),
+  debug: (...args) => console.debug(...args)
+};
 
-  info(message) {
-    console.log(`[INFO] ${message}`);
-    this.logs.push({ level: 'info', message });
-  }
-
-  warn(message) {
-    console.warn(`[WARN] ${message}`);
-    this.logs.push({ level: 'warn', message });
-  }
-
-  error(message) {
-    console.error(`[ERROR] ${message}`);
-    this.logs.push({ level: 'error', message });
-  }
-
-  debug(message) {
-    console.debug(`[DEBUG] ${message}`);
-    this.logs.push({ level: 'debug', message });
-  }
-
-  getLogs() {
-    return this.logs;
-  }
-
-  clear() {
-    this.logs = [];
-  }
-}
-
-module.exports = new Logger(); 
+module.exports = logger; 

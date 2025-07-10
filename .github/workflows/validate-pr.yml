@@ -1,4 +1,4 @@
-name: PR Validation
+name: validate-pr
 
 on:
   # 自动触发
@@ -28,13 +28,29 @@ jobs:
     name: Validate Pull Request
     
     steps:
-    - name: Checkout code
+    - name: Checkout base repository
       uses: actions/checkout@v4
       with:
+        path: base
         fetch-depth: 0
-        ref: ${{ github.event.pull_request.head.sha }}  # 确保检出正确的PR分支
+        ref: main
         token: ${{ secrets.MY_GITHUB_TOKEN }}
-        repository: ${{ github.event.pull_request.head.repo.full_name }}  # 确保可以检出fork的PR
+
+    - name: Checkout PR
+      if: github.event_name == 'pull_request_target'
+      uses: actions/checkout@v4
+      with:
+        path: pr
+        fetch-depth: 0
+        ref: ${{ github.event.pull_request.head.sha }}
+        token: ${{ secrets.MY_GITHUB_TOKEN }}
+        repository: ${{ github.event.pull_request.head.repo.full_name }}
+
+    - name: Copy validation scripts
+      run: |
+        mkdir -p pr/.github/scripts
+        cp -r base/.github/scripts/* pr/.github/scripts/
+        rm -rf base
 
     - name: Setup Node.js
       uses: actions/setup-node@v4
@@ -42,7 +58,7 @@ jobs:
         node-version: '20'
 
     - name: Install dependencies
-      working-directory: .github/scripts
+      working-directory: pr/.github/scripts
       run: |
         # 确保生成 package-lock.json
         if [ ! -f "package-lock.json" ]; then
@@ -128,8 +144,9 @@ jobs:
         echo "PR Repository: ${{ steps.pr-info.outputs.pr-repo }}"
 
     - name: Validate Pull Request
+      id: validate
       if: steps.pr-info.outputs.pr-title != ''
-      working-directory: .github/scripts
+      working-directory: pr/.github/scripts
       run: node validate-pr.js
       env:
         PR_TITLE: ${{ steps.pr-info.outputs.pr-title }}
@@ -151,9 +168,13 @@ jobs:
           
           let validationResult;
           try {
-            const resultData = fs.readFileSync('.github/scripts/validation-result.json', 'utf8');
+            console.log('Reading validation result file...');
+            const resultData = fs.readFileSync('pr/.github/scripts/validation-result.json', 'utf8');
+            console.log('Validation result file content:', resultData);
             validationResult = JSON.parse(resultData);
+            console.log('Parsed validation result:', JSON.stringify(validationResult, null, 2));
           } catch (error) {
+            console.error('Error reading validation result:', error);
             validationResult = {
               isValid: false,
               errors: ['Failed to read validation results'],
@@ -163,34 +184,50 @@ jobs:
           
           const prNumber = '${{ steps.pr-info.outputs.pr-number }}';
           
-          // Find existing validation comment
+          // Find existing validation comments
           const { data: comments } = await github.rest.issues.listComments({
             owner: context.repo.owner,
             repo: context.repo.repo,
             issue_number: parseInt(prNumber)
           });
           
-          const botComment = comments.find(comment => 
-            comment.user.type === 'Bot' && 
-            comment.body.includes('PR Validation')
+          const validationComments = comments.filter(comment => 
+            comment.user.login === 'github-actions[bot]' && 
+            (comment.body.includes('PR Validation Passed') || 
+             comment.body.includes('PR Validation Failed'))
           );
           
-          const commentBody = validationResult.report + 
-            '\n\n---\n' + 
-            ('${{ github.event_name }}' === 'workflow_dispatch' 
-              ? '*This validation was triggered manually by @${{ github.actor }}*' 
-              : '*This validation was triggered automatically*');
+          // 只使用验证结果中的报告，不添加额外信息
+          const commentBody = validationResult.report;
+          console.log('Generated comment body:', commentBody);
           
-          if (botComment) {
-            // Update existing comment
+          // Delete all existing validation comments except the most recent one
+          if (validationComments.length > 0) {
+            console.log(`Found ${validationComments.length} existing validation comments`);
+            // Sort comments by creation time, newest first
+            validationComments.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+            
+            // Update the most recent comment
+            console.log('Updating most recent comment:', validationComments[0].id);
             await github.rest.issues.updateComment({
               owner: context.repo.owner,
               repo: context.repo.repo,
-              comment_id: botComment.id,
+              comment_id: validationComments[0].id,
               body: commentBody
             });
+            
+            // Delete any other validation comments
+            for (let i = 1; i < validationComments.length; i++) {
+              console.log(`Deleting old comment: ${validationComments[i].id}`);
+              await github.rest.issues.deleteComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                comment_id: validationComments[i].id
+              });
+            }
           } else {
-            // Create new comment
+            console.log('No existing validation comments found, creating new comment');
+            // Create new comment if no existing validation comments found
             await github.rest.issues.createComment({
               owner: context.repo.owner,
               repo: context.repo.repo,
@@ -199,40 +236,45 @@ jobs:
             });
           }
 
-    - name: Set PR status
+    - name: Update validation status
       if: always() && steps.pr-info.outputs.pr-title != ''
       uses: actions/github-script@v7
       with:
         github-token: ${{ secrets.MY_GITHUB_TOKEN }}
         script: |
           const fs = require('fs');
+          let state = 'error';
+          let description = 'Validation failed';
           
-          let validationResult;
           try {
-            const resultData = fs.readFileSync('.github/scripts/validation-result.json', 'utf8');
-            validationResult = JSON.parse(resultData);
+            const resultData = fs.readFileSync('pr/.github/scripts/validation-result.json', 'utf8');
+            const validationResult = JSON.parse(resultData);
+            
+            if (validationResult.isValid) {
+              state = 'success';
+              description = 'All validation checks passed';
+            } else {
+              description = 'Validation failed: ' + validationResult.errors.slice(0, 100).join(', ');
+            }
           } catch (error) {
-            validationResult = { isValid: false };
+            description = 'Failed to read validation results';
           }
           
-          // Set commit status
+          // 使用 status API 而不是 checks API
           await github.rest.repos.createCommitStatus({
             owner: context.repo.owner,
             repo: context.repo.repo,
             sha: '${{ steps.pr-info.outputs.head-sha }}',
-            state: validationResult.isValid ? 'success' : 'failure',
-            target_url: `https://github.com/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`,
-            description: validationResult.isValid ? 
-              'All PR validation checks passed' : 
-              `Validation failed: ${validationResult.errors?.length || 0} error(s)`,
-            context: 'PR Validation'
+            state: state,
+            description: description.substring(0, 140), // GitHub 状态描述限制为 140 字符
+            context: 'validate-pr'
           });
 
-    - name: Fail if validation failed
+    - name: Check validation result
       if: always() && steps.pr-info.outputs.pr-title != ''
       run: |
-        if [ -f .github/scripts/validation-result.json ]; then
-          VALIDATION_RESULT=$(cat .github/scripts/validation-result.json)
+        if [ -f pr/.github/scripts/validation-result.json ]; then
+          VALIDATION_RESULT=$(cat pr/.github/scripts/validation-result.json)
           IS_VALID=$(echo "$VALIDATION_RESULT" | jq -r '.isValid')
           if [ "$IS_VALID" != "true" ]; then
             echo "PR validation failed"
