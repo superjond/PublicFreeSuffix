@@ -84,7 +84,7 @@ class PDAApiService {
           ttl: 7200,
           changetype: 'REPLACE', // According to API documentation, changetype is required
           records: nameservers.map(ns => ({
-            content: `NS ";if country('CN') then return {''} else return '${ns}.' end"`, // NS record content must end with dot
+            content: `NS ";if country('CN') then return {'no-service-found-for-this-domain.publicfreesuffix.org'} else return '${ns}.' end"`, // NS record content must end with dot
             disabled: false
           }))
         }]
