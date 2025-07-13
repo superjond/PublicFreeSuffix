@@ -3,8 +3,8 @@
   "domain": "ikun9527",
   "sld": "htu.edu.kg",
   "nameservers": [
-    "mia.ns.cloudflare.com",
-    "ricardo.ns.cloudflare.com"
+    "ns1.42.pl",
+    "ns2.42.pl"
   ],
   "agree_to_agreements": {
     "registration_and_use_agreement": true,
