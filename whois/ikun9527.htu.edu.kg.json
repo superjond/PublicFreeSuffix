@@ -3,8 +3,10 @@
   "domain": "ikun9527",
   "sld": "htu.edu.kg",
   "nameservers": [
-    "fns1.42.pl",
-    "fns2.42.pl"
+    "ns1.hostry.com",
+    "ns2.hostry.com",
+    "ns3.hostry.com",
+    "ns4.hostry.com"
   ],
   "agree_to_agreements": {
     "registration_and_use_agreement": true,
