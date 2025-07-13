@@ -3,8 +3,8 @@
   "domain": "crystalccc",
   "sld": "no.kg",
   "nameservers": [
-    "ns0.1984.is",
-    "ns1.1984hosting.com"
+    "ns1.desec.io",
+    "ns2.desec.org"
   ],
   "agree_to_agreements": {
     "registration_and_use_agreement": true,
