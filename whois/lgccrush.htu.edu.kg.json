@@ -1,10 +1,10 @@
 {
-  "registrant": "tangobravo5656@gmail.com",
-  "domain": "ikun9527",
+  "registrant": "lgccrush001@gmail.com",
+  "domain": "lgccrush",
   "sld": "htu.edu.kg",
   "nameservers": [
-    "fns1.42.pl.",
-    "fns2.42.pl."
+    "ns1.cloudflare.com",
+    "ns2.cloudflare.com"
   ],
   "agree_to_agreements": {
     "registration_and_use_agreement": true,

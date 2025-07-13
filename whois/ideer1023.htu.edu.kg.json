@@ -1,10 +1,10 @@
 {
-  "registrant": "tangobravo5656@gmail.com",
-  "domain": "ikun9527",
+  "registrant": "taurus2146@gmail.com",
+  "domain": "ideer1023",
   "sld": "htu.edu.kg",
   "nameservers": [
-    "fns1.42.pl.",
-    "fns2.42.pl."
+    "kami.ns.cloudflare.com",
+    "merlin.ns.cloudflare.com"
   ],
   "agree_to_agreements": {
     "registration_and_use_agreement": true,
