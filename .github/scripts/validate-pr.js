@@ -744,7 +744,7 @@ ${mentionUser ? `@${mentionUser} ` : ''}**Validation Results:**
 - **Domain:** ${validationResult.details.domainName}.${validationResult.details.sld}
 - **File:** ${validationResult.details.fileName}
 
-⏭️ **Everything is ready, you just need to complete the registrant's email verification according to [RARE Instructions](https://github.com/PublicFreeSuffix/PublicFreeSuffix/blob/main/AUTHORIZATION.md) to complete the merger.**`;
+⏭️ **Final Step: you just need to complete the registrant's email verification according to [RARE Instructions](https://github.com/PublicFreeSuffix/PublicFreeSuffix/blob/main/AUTHORIZATION.md) to complete the merger.**`;
   }
 
   /**
