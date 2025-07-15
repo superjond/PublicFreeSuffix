@@ -12,6 +12,14 @@ Anyone can register and obtain their free domain from here and no need renew it 
 no.kg
 htu.edu.kg
 ```
+
+## Supported third-party DNS hosting platforms
+A third-party DNS service hosting platform (paid/free) that has been tested and supported by users. You need to add your desired domain name to these platforms first, obtain the NS record, and then initiate the PR registration process.
+
+[<img alt="dns.he.net" title="dns.he.net" height="40px" style="margin-right:10px" src="https://dns.he.net/include/images/helogo.gif" />](https://dns.he.net/?src=PublicFreeSuffix)
+[<img alt="desec.io" title="desec.io" height="40px" style="margin-right:10px" src="https://desec.io/assets/logo-CP29ePBl.svg" />](https://desec.io/?src=PublicFreeSuffix)
+[<img alt="hostry.com" title="hostry.com" height="40px" src="https://hostry.com/img/logo.svg?v=1.00r3266" />](https://hostry.com/?src=PublicFreeSuffix)
+
 ## How do I register a domain name?
 
 [Acceptable Use Policy](agreements/acceptable-use-policy.md) | 
