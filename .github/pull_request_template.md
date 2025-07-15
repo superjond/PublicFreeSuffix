@@ -1,7 +1,7 @@
 > All items should be completed and confirmed to trigger the automatic merge workflow.
 
 ## Operation Type
-- [x] Create, Register a new domain name.
+- [x] Registration, Register a new domain name.
 - [ ] Update, Update NS information or registrant email for an existing domain.
 - [ ] Remove, Cancel my domain name.
 
