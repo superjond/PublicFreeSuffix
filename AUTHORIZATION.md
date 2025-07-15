@@ -6,7 +6,7 @@ To streamline your operations, we've set up an automated merge and deployment pr
 
 For this authorization process to be valid, your submitted pull request (PR) must meet the following title, description, and status requirements. All conditions below must be satisfied:
 
-  * The PR title uses the legal format: `Registrant\Update\Delete: your-domain-name.no.kg`
+  * The PR title uses the legal format: `Registrant\Update\Remove: your-domain-name.no.kg`
   * The PR description uses the automatic template, with the options and domain name fields correctly modified.
   * Your PR has completed automatic validation and received the `validation-passed` label.
   * Your PR only contains changes to a single `whois\*.json` file.
