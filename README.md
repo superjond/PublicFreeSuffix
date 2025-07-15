@@ -21,12 +21,11 @@ A third-party DNS service hosting platform (paid/free) that has been tested and 
 [<img alt="hostry.com" title="hostry.com" height="40px" src="https://hostry.com/img/logo.svg?v=1.00r3266" />](https://hostry.com/?src=PublicFreeSuffix)
 
 ## How do I register a domain name?
-<div style="text-align: center;width: 100%;">
+
 [Acceptable Use Policy](agreements/acceptable-use-policy.md) | 
 [Privacy Policy](agreements/privacy-policy.md) | 
 [Registration And Use Agreement](agreements/registration-and-use-agreement-sokg.md) | 
 [Reserved Words List](reserved_words.txt)
-</div>
 1. Clone the repository:
 ```bash
 git clone https://github.com/PublicFreeSuffix/PublicFreeSuffix.git
@@ -35,8 +34,12 @@ Create a new branch for your own domain name:
 ```bash
 git checkout main
 git pull origin main
-git checkout -b request-{example.no.kg}
+git checkout -b yourdomain.no.kg-request-1
 ```
+Before performing any PR (Pull Request) operation—whether it's registering, updating, or deleting a domain's Whois file—you should always switch back to the main branch and sync the latest changes to your local environment.
+Afterward, create a new branch following the specified branch naming convention. Save your changes, and then create a new PR from this new branch.
+The branch naming convention should always adapt to the specific operation count, using the format: `yourdomain.no.kg-request-{a_number_here}`.
+
 2. Choose avaliable domain name, and create a new whois file into `./whois/{your-new-domain-name}.json` folder:
 ```json
 {
