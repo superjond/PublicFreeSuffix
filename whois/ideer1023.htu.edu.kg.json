@@ -1,0 +1,14 @@
+{
+  "registrant": "taurus2146@gmail.com",
+  "domain": "ideer1023",
+  "sld": "htu.edu.kg",
+  "nameservers": [
+    "kami.ns.cloudflare.com",
+    "merlin.ns.cloudflare.com"
+  ],
+  "agree_to_agreements": {
+    "registration_and_use_agreement": true,
+    "acceptable_use_policy": true,
+    "privacy_policy": true
+  }
+}
