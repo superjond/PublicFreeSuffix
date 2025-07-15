@@ -1,12 +1,12 @@
-**All items should be completed and confirmed to trigger the automatic merge workflow.**
+> All items should be completed and confirmed to trigger the automatic merge workflow.
 
 ## Operation Type
-- [ ] Create, Register a new domain name.
+- [x] Create, Register a new domain name.
 - [ ] Update, Update NS information or registrant email for an existing domain.
 - [ ] Remove, Cancel my domain name.
 
 ## Domain
-- [ ] Replace this sentence with your actual domain name
+- [x] your_example.no.kg
 
 ## Confirmation Items
 - [ ] I confirm that I will deploy the website content for this domain name and put it into use within 30 days instead of hoarding and occupying resources.
