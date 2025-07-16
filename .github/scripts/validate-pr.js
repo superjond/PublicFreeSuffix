@@ -1092,6 +1092,23 @@ whois/mycompany.so.kg.json
     });
     return categories;
   }
+
+  /**
+   * Save validation result to file, ensure directory exists
+   */
+  saveValidationResult(validationResult) {
+    try {
+      const resultFilePath = path.join(__dirname, 'validation-result.json');
+      const resultDir = path.dirname(resultFilePath);
+      if (!fs.existsSync(resultDir)) {
+        fs.mkdirSync(resultDir, { recursive: true });
+      }
+      fs.writeFileSync(resultFilePath, JSON.stringify(validationResult, null, 2));
+      logger.info(`Validation result saved to ${resultFilePath}`);
+    } catch (err) {
+      logger.error('Failed to save validation result:', err);
+    }
+  }
 }
 
 module.exports = new PRValidator();
