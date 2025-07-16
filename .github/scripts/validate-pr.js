@@ -815,7 +815,11 @@ ${mentionUser ? `@${mentionUser} ` : ''}**The following issues were found:**
       });
     }
 
-    report += `\n**Need help?** Please refer to the [README](${config.github.readmeUrl}).`;
+    // 统一友好提示，避免重复输出
+    const readmeTip = `\n\n📖 **Need help?** Please refer to the [README](${config.github.readmeUrl}) for detailed PR submission guidance and examples. If you are a new user, this will help you complete your operation smoothly! 💡`;
+    if (!report.includes('README')) {
+      report += readmeTip;
+    }
 
     return report;
   }
