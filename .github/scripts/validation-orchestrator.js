@@ -54,6 +54,14 @@ class ValidationOrchestrator {
 
         // 5. Perform action-specific validations
         if (titleValidation.isValid && filePathValidation.isValid) {
+          // 新增：新增whois/*.json时校验SLD状态
+          if (file.status === 'added') {
+            const sldService = require('./sld-service');
+            const sldStatus = await sldService.getSLDStatus(titleValidation.sld);
+            if (sldStatus !== 'live') {
+              resultManager.addError(`The SLD "${titleValidation.sld}" is currently in status "${sldStatus}" and does not allow new domain registrations.`);
+            }
+          }
           if (titleValidation.actionType === "Remove") {
             const removeValidation =
               await validationService.validateRemoveOperation(
