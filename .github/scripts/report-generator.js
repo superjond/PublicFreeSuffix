@@ -81,18 +81,18 @@ function generateTargetedHelp(errors) {
       helpSections.push({
         title: "Fix Title Format",
         content: `The title must strictly follow this format:
-```
+\`\`\`
 Registration: example.no.kg
 Update: example.no.kg  
 Remove: example.no.kg
-```
+\`\`\`
 
 **Supported domain suffixes:** ${config.sld ? config.sld.join(', ') : 'Please check configuration'}
 
 **Examples:**
-- ✅ `Registration: mycompany.no.kg`
-- ❌ `Add new domain mycompany.no.kg`
-- ❌ `Registration mycompany.no.kg` (missing colon)`
+- ✅ \`Registration: mycompany.no.kg\`
+- ❌ \`Add new domain mycompany.no.kg\`
+- ❌ \`Registration mycompany.no.kg\` (missing colon)`
       });
     }
 
@@ -126,18 +126,18 @@ Remove: example.no.kg
     if (errorTypes.filePath) {
       helpSections.push({
         title: "Fix File Path",
-        content: `Files must be located in the `whois/` directory and be `.json` files.
+        content: `Files must be located in the \`whois/\` directory and be \`.json\` files.
 
 **Correct file path format:**
-```
+\`\`\`
 whois/example.no.kg.json
 whois/mycompany.so.kg.json
-```
+\`\`\`
 
 **File naming rules:**
 - Filename must exactly match the domain name
-- Must have `.json` extension
-- Must be located in the `whois/` directory`
+- Must have \`.json\` extension
+- Must be located in the \`whois/\` directory`
       });
     }
 
