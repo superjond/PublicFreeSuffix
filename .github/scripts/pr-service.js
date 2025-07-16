@@ -3,6 +3,45 @@ const logger = require("./logger");
 const githubService = require("./github-service");
 
 /**
+ * Extract file content from patch
+ */
+function extractContentFromPatch(patch) {
+  if (!patch) return null;
+  const lines = patch.split("\n");
+  const content = [];
+  for (const line of lines) {
+    if (line.startsWith("+") && !line.startsWith("+++")) {
+      content.push(line.substring(1));
+    }
+  }
+  return content.join("\n");
+}
+
+/**
+ * Get file content
+ */
+async function getFileContent(file, prData) {
+  try {
+    if (file.status === "added" && file.patch) {
+      return extractContentFromPatch(file.patch);
+    }
+    if (file.status === "modified") {
+      const [owner, repo] = config.github.repository.split("/");
+      return await githubService.getFileContent(
+        file.filename,
+        prData.headSha,
+        owner,
+        repo
+      );
+    }
+    return null;
+  } catch (error) {
+    logger.error("Failed to get file content:", error);
+    return null;
+  }
+}
+
+/**
  * Get PR data from environment variables and GitHub API
  */
 async function getPRDataFromEnv() {
