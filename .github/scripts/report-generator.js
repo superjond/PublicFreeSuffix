@@ -94,6 +94,8 @@ Remove: example.no.kg
 - ❌ `Add new domain mycompany.no.kg`
 - ❌ `Registration mycompany.no.kg` (missing colon)`
       });
+    }`
+      });
     }
 
     if (errorTypes.descriptionLength) {
