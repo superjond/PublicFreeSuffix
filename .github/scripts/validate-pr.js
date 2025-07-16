@@ -1098,7 +1098,7 @@ whois/mycompany.so.kg.json
    */
   saveValidationResult(validationResult) {
     try {
-      const resultFilePath = path.join(__dirname, 'validation-result.json');
+      const resultFilePath = path.resolve('pr/.github/scripts/validation-result.json');
       const resultDir = path.dirname(resultFilePath);
       if (!fs.existsSync(resultDir)) {
         fs.mkdirSync(resultDir, { recursive: true });
