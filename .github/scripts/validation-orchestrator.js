@@ -16,8 +16,6 @@ class ValidationOrchestrator {
       const titleValidation = await validationService.validateTitle(
         prData.title,
       );
-        prData.title,
-      );
       resultManager.setDetail("titleValid", titleValidation.isValid);
       resultManager.setDetail("actionType", titleValidation.actionType);
       resultManager.setDetail("domainName", titleValidation.domainName);
