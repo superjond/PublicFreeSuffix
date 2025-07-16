@@ -12,10 +12,10 @@ class ValidationOrchestrator {
     const resultManager = new ValidationResultManager();
 
     try {
-      // PR data is now passed in, no need to fetch it here.
-
       // 1. Validate PR title
       const titleValidation = await validationService.validateTitle(
+        prData.title,
+      );
         prData.title,
       );
       resultManager.setDetail("titleValid", titleValidation.isValid);

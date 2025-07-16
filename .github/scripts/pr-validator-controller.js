@@ -21,7 +21,7 @@ class PRValidatorController {
   async validatePullRequest() {
     logger.info("🔍 Starting PR validation process");
 
-    const prData = prService.getPRDataFromEnv();
+    const prData = await prService.getPRDataFromEnv();
     const result = await validationOrchestrator.validate(prData);
 
     validationReporter.report(result, prData.number);
