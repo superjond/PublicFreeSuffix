@@ -55,8 +55,20 @@ class ValidationOrchestrator {
           } else {
             if (['added', 'modified'].includes(file.status)) {
               const jsonValidation = await validationService.validateJsonContent(file, prData);
-              if (!jsonValidation.isValid) resultManager.addError(jsonValidation.error);
-              else resultManager.setDetail('jsonValid', true);
+              if (!jsonValidation.isValid) {
+                resultManager.addError(jsonValidation.error);
+              } else {
+                resultManager.setDetail('jsonValid', true);
+                // Now validate branch name using data from the validated JSON
+                const branchValidation = validationService.validateBranchName(
+                  prData.branchName,
+                  jsonValidation.data.domain,
+                  jsonValidation.data.sld
+                );
+                if (!branchValidation.isValid) {
+                  resultManager.addError(branchValidation.error);
+                }
+              }
             }
           }
 

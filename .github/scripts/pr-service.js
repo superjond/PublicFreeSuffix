@@ -60,20 +60,26 @@ async function getFileContent(file, prData) {
  * Get PR data from environment variables
  */
 function getPRDataFromEnv() {
-  const prTitle = process.env.PR_TITLE || '';
-  const prBody = process.env.PR_BODY || '';
-  const prNumber = process.env.PR_NUMBER || '';
-  const prAuthor = process.env.PR_AUTHOR || '';
-  const prFiles = JSON.parse(process.env.PR_FILES || '[]');
-  const headSha = process.env.HEAD_SHA || '';
+  const eventPath = process.env.GITHUB_EVENT_PATH;
+  if (!eventPath) {
+    throw new Error('GITHUB_EVENT_PATH environment variable not set');
+  }
+  const event = require(eventPath);
+
+  const pr = event.pull_request;
+  if (!pr) {
+    throw new Error('Could not find pull request data in event payload');
+  }
+
+  const files = getChangedFiles();
 
   return {
-    title: prTitle,
-    body: prBody,
-    number: prNumber,
-    author: prAuthor,
-    files: prFiles,
-    headSha: headSha
+    number: pr.number,
+    title: pr.title,
+    body: pr.body,
+    author: pr.user.login,
+    branchName: pr.head.ref, // Extract branch name
+    files: files
   };
 }
 
