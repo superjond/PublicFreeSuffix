@@ -337,7 +337,7 @@ function validateBranchName(branchName, domain, sld) {
   }
 
   const expectedPrefix = `${domain}.${sld}-request-`;
-  const branchRegex = new RegExp(`^${expectedPrefix}\\d+const config = require('./config');
+  const branchRegex = new RegExp(`^${expectedPrefix}\d+const config = require('./config');
 const reservedWordsService = require('./reserved-words');
 const sldService = require('./sld-service');
 const prService = require('./pr-service');
@@ -630,6 +630,9 @@ async function validateJsonFields(jsonData) {
   }
 }
 
+/**
+ * Validate JSON content format
+ */
 );
 
   if (!branchRegex.test(branchName)) {
