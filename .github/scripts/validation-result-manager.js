@@ -1,4 +1,4 @@
-const logger = require('./logger');
+const logger = require("./logger");
 
 class ValidationResultManager {
   constructor() {
@@ -14,9 +14,9 @@ class ValidationResultManager {
         actionType: null,
         domainName: null,
         sld: null,
-        fileName: null
+        fileName: null,
       },
-      report: ''
+      report: "",
     };
   }
 
@@ -25,7 +25,7 @@ class ValidationResultManager {
       this.result.errors.push(error);
       this.result.isValid = false;
     } else {
-      logger.warn('Attempted to add null/undefined error');
+      logger.warn("Attempted to add null/undefined error");
     }
   }
 
@@ -33,7 +33,7 @@ class ValidationResultManager {
     if (warning) {
       this.result.warnings.push(warning);
     } else {
-      logger.warn('Attempted to add null/undefined warning');
+      logger.warn("Attempted to add null/undefined warning");
     }
   }
 
@@ -44,7 +44,7 @@ class ValidationResultManager {
       logger.warn(`Attempted to set unknown detail key: ${key}`);
     }
   }
-  
+
   setReport(report) {
     this.result.report = report;
   }
@@ -52,7 +52,7 @@ class ValidationResultManager {
   getResult() {
     return this.result;
   }
-  
+
   isValid() {
     return this.result.isValid;
   }

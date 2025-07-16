@@ -1,6 +1,6 @@
-const fs = require('fs');
-const path = require('path');
-const logger = require('./logger');
+const fs = require("fs");
+const path = require("path");
+const logger = require("./logger");
 
 class ValidationReporter {
   /**
@@ -12,7 +12,9 @@ class ValidationReporter {
     if (validationResult.isValid) {
       logger.info(`✅ PR #${prNumber} validation passed`);
       logger.info(`   Action type: ${validationResult.details.actionType}`);
-      logger.info(`   Domain: ${validationResult.details.domainName}.${validationResult.details.sld}`);
+      logger.info(
+        `   Domain: ${validationResult.details.domainName}.${validationResult.details.sld}`,
+      );
       logger.info(`   File: ${validationResult.details.fileName}`);
     } else {
       logger.error(`❌ PR #${prNumber} validation failed`);
@@ -28,14 +30,14 @@ class ValidationReporter {
    */
   saveValidationResultToFile(validationResult) {
     try {
-      const resultPath = path.join(__dirname, 'validation-result.json');
+      const resultPath = path.join(__dirname, "validation-result.json");
       fs.writeFileSync(resultPath, JSON.stringify(validationResult, null, 2));
       logger.info(`Validation result saved to: ${resultPath}`);
     } catch (error) {
-      logger.error('Failed to save validation result:', error);
+      logger.error("Failed to save validation result:", error);
     }
   }
-  
+
   /**
    * Handles all reporting tasks for the validation process.
    * @param {object} validationResult - The final validation result object.
