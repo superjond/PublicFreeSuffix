@@ -87,7 +87,7 @@ Update: example.no.kg
 Remove: example.no.kg
 \`\`\`
 
-**Supported domain suffixes:** ${config.sld ? config.sld.join(', ') : 'Please check configuration'}
+**Supported domain suffixes:** ${Array.isArray(config.sld) ? config.sld.join(', ') : 'Please check configuration'}
 
 **Examples:**
 - ✅ \`Registration: mycompany.no.kg\`
