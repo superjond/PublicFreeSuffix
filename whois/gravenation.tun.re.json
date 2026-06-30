@@ -1,13 +1,11 @@
 {
-  "registrant": "huaweimate40pr@outlook.com",
-  "domain": "525",
+  "registrant": "drsamael@outlook.com",
+  "domain": "gravenation",
   "sld": "tun.re",
   "nameservers": [
-    "ns1.luadns.net",
-    "ns2.luadns.net",
-    "ns3.luadns.net",
-    "ns4.luadns.net"    
-    ],
+    "ns1.gcorelabs.net",
+    "ns2.gcdn.services"
+  ],
   "agree_to_agreements": {
     "registration_and_use_agreement": true,
     "acceptable_use_policy": true,
